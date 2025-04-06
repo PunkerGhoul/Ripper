@@ -74,30 +74,10 @@ in {
     # EDITOR = "emacs";
   };
 
-  programs.git = {
-    enable = true;
-    extraConfig = {
-      pull.rebase = true;
-    };
-    includes = [
-      {
-        contents = {
-          user = {
-            name = env.github.name;
-            email = env.github.email;
-            signingKey = env.github.signingKey;
-          };
-          init = {
-            defaultBranch = "main";
-          };
-          commit = {
-            gpgSign = true;
-          };
-        };
-      }
-    ];
-  };
-
   # Let Home Manager install and manage itself.
   programs.home-manager.enable = true;
+
+  imports = [
+    (import ./modules/git.nix { inherit pkgs env; })
+  ];
 }
