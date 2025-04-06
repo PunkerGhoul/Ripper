@@ -1,0 +1,7 @@
+{
+  github = {
+    name = "";
+    email = "";
+    signingKey = "";
+  };
+}
