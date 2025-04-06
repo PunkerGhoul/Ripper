@@ -78,6 +78,6 @@ in {
   programs.home-manager.enable = true;
 
   imports = [
-    (import ./modules/git.nix { inherit pkgs env; })
+    (import ./modules/git { inherit pkgs env; })
   ];
 }
