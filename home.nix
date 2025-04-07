@@ -78,6 +78,8 @@ in {
   programs.home-manager.enable = true;
 
   imports = [
+    (import ./modules/x { inherit pkgs; })
+    (import ./modules/zsh { inherit pkgs; })
     (import ./modules/git { inherit pkgs env; })
   ];
 }
