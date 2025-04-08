@@ -10,6 +10,7 @@
       fi
     '';
     envExtra = ''
+      export GPG_TTY=$(tty)
       export GOPATH=$HOME/.go
       export PATH="$PATH:$GOPATH/bin"
       export PATH="$PATH:$HOME/Documents/Tools"
