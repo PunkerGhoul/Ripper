@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ config, pkgs, lib, ... }:
 
 {
   home.file.".xinitrc".text = ''
@@ -13,4 +13,8 @@
   xsession = {
     enable = true;
   };
+
+  imports = [
+    (import ./i3 { inherit config pkgs lib; })
+  ];
 }

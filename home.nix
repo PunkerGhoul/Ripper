@@ -1,4 +1,4 @@
-{ config, pkgs, ... }:
+{ config, pkgs, lib, ... }:
 
 let
   env = import ./env.nix;
@@ -78,7 +78,7 @@ in {
   programs.home-manager.enable = true;
 
   imports = [
-    (import ./modules/x { inherit pkgs; })
+    (import ./modules/x { inherit config pkgs lib; })
     (import ./modules/zsh { inherit pkgs; })
     (import ./modules/git { inherit pkgs env; })
   ];
