@@ -11,11 +11,12 @@
     executable = true;
   };
 
-  services.polybar = {
-    enable = false;
-    #script = ''
-    #  $HOME/.config/polybar/launch.sh --cuts &
-    #  $HOME/.local/bin/polybar-reload &
-    #'';
-  };
+  #services.polybar = {
+  #  enable = true;
+  #  package = pkgs.polybarFull;
+  #  script = ''
+  #    $HOME/.config/polybar/launch.sh --cuts &
+  #    $HOME/.local/bin/polybar-reload &
+  #  '';
+  #};
 }
