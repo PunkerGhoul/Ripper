@@ -21,7 +21,7 @@ scrot -o -q 100 $temp_pic || exit 1
 
 convert $temp_pic -paint 3 -swirl 270 $temp_pic || exit 1
 
-i3lock \
+@i3lock@ \
     -t -e -i $temp_pic \
     --time-pos='x+110:h-70' \
     --date-pos='x+43:h-45' \

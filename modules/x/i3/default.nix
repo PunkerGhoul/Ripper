@@ -3,7 +3,10 @@
 let
   modifier = config.xsession.windowManager.i3.config.modifier;
 in {
-  home.file.".config/i3/scripts/lock".source = ./scripts/lock;
+  home.file.".config/i3/scripts/lock" = {
+    text = builtins.replaceStrings [ "@i3lock@" ] [ "${pkgs.i3lock}/bin/i3lock" ] (builtins.readFile ./scripts/lock);
+    executable = true;
+  };
 
   xsession.windowManager.i3 = {
     enable = true;
