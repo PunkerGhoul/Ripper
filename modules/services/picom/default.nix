@@ -2,7 +2,7 @@
 
 {
   services.picom = {
-    enable = false;
+    enable = true;
     #backend = "glx";
     backend = "xrender";
     fade = true;
