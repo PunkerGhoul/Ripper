@@ -81,11 +81,6 @@ in {
           command = "${pkgs.feh}/bin/feh --bg-fill $HOME/Pictures/Wallpapers/cyberpunk.jpg";
           always = true;
         }
-        # Transparency with picom compositor
-        {
-          command = "${pkgs.picom}/bin/picom -f";
-          always = true;
-        }
         # Polybar
         {
           command = "$HOME/.config/polybar/launch.sh --cuts";
