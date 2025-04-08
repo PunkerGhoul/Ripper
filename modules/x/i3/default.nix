@@ -3,10 +3,19 @@
 let
   modifier = config.xsession.windowManager.i3.config.modifier;
 in {
-  home.file.".config/i3/scripts/lock" = {
-    text = builtins.replaceStrings [ "@i3lock@" ] [ "${pkgs.i3lock}/bin/i3lock" ] (builtins.readFile ./scripts/lock);
-    executable = true;
-  };
+  home.activation.install-i3lock = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+      if [ ! -x /usr/bin/i3lock ] && ! /usr/bin/i3lock -v 2>/dev/null | grep -q '\.c\.'; then
+        /usr/bin/sudo bash -c '
+          set -e
+          /usr/bin/apt-get update -y
+          /usr/bin/apt-get install -y i3lock-color
+        '
+      else
+        echo "i3lock-color already installed."
+      fi
+    '';
+
+  home.file.".config/i3/scripts/lock".source = ./scripts/lock;
 
   xsession.windowManager.i3 = {
     enable = true;
