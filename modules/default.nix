@@ -4,5 +4,6 @@
   imports = [
     (import ./x { inherit config pkgs lib; })
     (import ./programs { inherit pkgs env; })
+    (import ./services { inherit pkgs; })
   ];
 }
