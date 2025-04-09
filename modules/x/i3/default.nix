@@ -57,6 +57,11 @@ in {
           command = "$HOME/.config/i3/scripts/lock";
           notification = false;
         }
+        # Polkit
+        {
+          command = "/usr/lib/policykit-1-gnome/polkit-gnome-authentication-agent-1";
+          notification = false;
+        }
         # NetworkManager is the most popular way to manage wireless networks on Linux,
         # and nm-applet is a desktop environment-independent system tray GUI for it.
         {
