@@ -82,14 +82,6 @@ in {
         }
         # Display Resolution
         {
-          command = "xrandr --output Virtual1 --mode 1920x1080";
-          always = true;
-        }
-        {
-          command = "xrandr --setprovideroutputsource modesetting NVIDIA-0";
-          always = true;
-        }
-        {
           command = "xrandr --auto";
           always = true;
         }
