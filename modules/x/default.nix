@@ -8,6 +8,10 @@
     # global xinitrc file, used by all X sessions started by xinit (startx)
     # invoke global X session script
     . /etc/X11/Xsession
+
+    export DISPLAY=:0
+    export XAUTHORITY="${config.home.homeDirectory}/.Xauthority"
+    dbus-update-activation-environment --systemd DISPLAY XAUTHORITY
   '';
 
   xsession = {

@@ -15,7 +15,10 @@ in {
       fi
     '';
 
-  home.file.".config/i3/scripts/lock".source = ./scripts/lock;
+  home.file.".config/i3/scripts/lock" = {
+    source = ./scripts/lock;
+    executable = true;
+  };
 
   xsession.windowManager.i3 = {
     enable = true;
