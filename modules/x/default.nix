@@ -12,6 +12,11 @@
     export DISPLAY=:0
     export XAUTHORITY="${config.home.homeDirectory}/.Xauthority"
     dbus-update-activation-environment --systemd DISPLAY XAUTHORITY
+
+    # VMware
+    if command -v vmware-user-suid-wrapper >/dev/null; then
+      vmware-user-suid-wrapper &
+    fi
   '';
 
   xsession = {
