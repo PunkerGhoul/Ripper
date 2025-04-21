@@ -71,23 +71,9 @@ in {
           command = "${pkgs.networkmanagerapplet}/bin/nm-applet";
           notification = false;
         }
-        # Start VMware User
-        {
-          command = "vmware-user";
-          notification = false;
-        }
-        {
-          command = "vmware-user-suid-wrapper";
-          notification = false;
-        }
-        # Display Resolution
-        {
-          command = "xrandr --auto";
-          always = true;
-        }
         # Display Wallpaper
         {
-          command = "${pkgs.feh}/bin/feh --bg-fill $HOME/Pictures/Wallpapers/cyberpunk.jpg";
+          command = "${pkgs.feh}/bin/feh --bg-max $HOME/Pictures/Wallpapers/cyberpunk.jpg";
           always = true;
         }
         # Polybar
