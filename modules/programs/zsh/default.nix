@@ -1,6 +1,7 @@
 { pkgs, ...}:
 
 let
+  ohMyZshConfig = import ./oh-my-zsh { inherit pkgs; };
   plugins = (import ./plugins { inherit pkgs; }).plugins;
 in {
   programs.zsh = {
@@ -25,22 +26,7 @@ in {
     };
     autosuggestion.enable = true;
     syntaxHighlighting.enable = true;
-    oh-my-zsh = {
-      enable = true;
-      plugins = [
-        "git"
-        "command-not-found"
-        "debian"
-        "extract"
-        "fzf"
-        "nmap"
-        "python"
-        "tmux"
-      ];
-      extraConfig = ''
-        zstyle ':omz:update' mode reminder
-      '';
-    };
+    inherit (ohMyZshConfig) oh-my-zsh;
     plugins = plugins;
   };
 }
