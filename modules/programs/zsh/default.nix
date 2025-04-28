@@ -2,7 +2,7 @@
 
 let
   ohMyZshConfig = import ./oh-my-zsh { inherit pkgs; };
-  plugins = (import ./plugins { inherit pkgs; }).plugins;
+  pluginsList = import ./plugins { inherit pkgs; };
 in {
   programs.zsh = {
     enable = true;
@@ -27,6 +27,6 @@ in {
     autosuggestion.enable = true;
     syntaxHighlighting.enable = true;
     inherit (ohMyZshConfig) oh-my-zsh;
-    plugins = plugins;
+    inherit (pluginsList) plugins;
   };
 }
