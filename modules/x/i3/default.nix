@@ -73,7 +73,7 @@ in {
         }
         # Display Wallpaper
         {
-          command = "${pkgs.feh}/bin/feh --bg-max $HOME/Pictures/Wallpapers/cyberpunk.jpg";
+          command = "${pkgs.feh}/bin/feh --bg-center --geometry 1920x1080 $HOME/Pictures/Wallpapers/cyberpunk.jpg";
           always = true;
         }
         # Polybar
