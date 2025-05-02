@@ -1,6 +1,11 @@
 { config, pkgs, lib, ... }:
 
 let
+  unstable = import <nixpkgs-unstable> {
+    inherit (pkgs) system;
+    config.allowUnfree = true;
+  };
+
   env = import ./env.nix;
   username = builtins.getEnv "USER";
 in {
@@ -80,6 +85,6 @@ in {
   programs.home-manager.enable = true;
 
   imports = [
-    (import ./modules { inherit config pkgs lib env; })
+    (import ./modules { inherit config pkgs unstable lib env; })
   ];
 }
