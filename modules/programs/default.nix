@@ -6,5 +6,6 @@
     (import ./kitty { inherit pkgs unstable config; })
     (import ./zsh { inherit pkgs; })
     (import ./git { inherit pkgs env; })
+    (import ./bat { inherit pkgs; })
   ];
 }
