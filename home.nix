@@ -85,6 +85,7 @@ in {
   programs.home-manager.enable = true;
 
   imports = [
+    (import ./configuration { inherit pkgs; })
     (import ./modules { inherit config pkgs unstable lib env; })
   ];
 }
