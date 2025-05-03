@@ -7,5 +7,6 @@
     (import ./zsh { inherit pkgs; })
     (import ./git { inherit pkgs env; })
     (import ./bat { inherit pkgs; })
+    (import ./jq { inherit pkgs; })
   ];
 }
