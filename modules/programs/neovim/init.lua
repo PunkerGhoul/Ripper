@@ -78,6 +78,16 @@ require("nvim-treesitter.configs").setup {
 require("todo-comments").setup {}
 
 -----------------------------------------------------------
+-- Indent Guides (indent-blankline-nvim)
+-----------------------------------------------------------
+
+require("ibl").setup({
+  indent = {
+    char = {"|"}
+  }
+})
+
+-----------------------------------------------------------
 -- Autocompletion (nvim-cmp)
 -----------------------------------------------------------
 

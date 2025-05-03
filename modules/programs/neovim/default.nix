@@ -18,15 +18,20 @@
           vim
           vimdoc
         ]);
-      in
-    with pkgs.vimPlugins; [
-      todo-comments-nvim
-      edge
-      nvim-cmp
-      nvim-treesitter-with-plugins
-      vim-autoformat
-      vim-nix
-    ];
+    in
+      with pkgs.vimPlugins; [
+        csv-vim
+        edge
+        indent-blankline-nvim
+        jedi-vim
+        nvim-cmp
+        nvim-treesitter-with-plugins
+        todo-comments-nvim
+        vim-airline
+        vim-airline-themes
+        vim-nix
+        vim-autoformat
+      ];
     extraLuaConfig = builtins.readFile ./init.lua;
   };
 }
