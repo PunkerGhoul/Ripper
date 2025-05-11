@@ -17,17 +17,20 @@ font="sans-serif"
 locktext='Type password to unlock...'
 temp_pic='/tmp/i3lock.png'
 
+imagemagick_bin={{imagemagickBin}}
+scrot_bin={{scrotBin}}
+
 log_error() {
     echo "[i3lock] Error: $*" >&2
 }
 
 main() {
-    if ! /usr/bin/scrot -o -q 100 $temp_pic; then
+    if ! $scrot_bin/scrot -o -q 100 $temp_pic; then
         log_error "scrot failed"
         return 1
     fi
 
-    if ! /usr/bin/convert $temp_pic -paint 3 -swirl 270 $temp_pic; then
+    if ! $imagemagick_bin/convert $temp_pic -paint 3 -swirl 270 $temp_pic; then
         log_error "convert failed"
         return 1
     fi

@@ -2,6 +2,11 @@
 
 let
   modifier = config.xsession.windowManager.i3.config.modifier;
+
+  lockScript = builtins.replaceStrings
+    [ "{{scrotBin}}" "{{imagemagickBin}}" ]
+    [ "${pkgs.scrot}/bin" "${pkgs.imagemagick}/bin" ]
+    (builtins.readFile ./scripts/lock);
 in {
   home.activation.install-i3lock = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
       if [ ! -x /usr/bin/i3lock ] && ! /usr/bin/i3lock -v 2>/dev/null | grep -q '\.c\.'; then
@@ -16,7 +21,7 @@ in {
     '';
 
   home.file.".config/i3/scripts/lock" = {
-    source = ./scripts/lock;
+    text = lockScript;
     executable = true;
   };
 
