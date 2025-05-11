@@ -20,9 +20,23 @@ in {
       fi
     '';
 
-  home.file.".config/i3/scripts/lock" = {
-    text = lockScript;
-    executable = true;
+  home.file = {
+    ".config/i3/scripts/lock" = {
+      text = lockScript;
+      executable = true;
+    };
+
+    ".config/i3/scripts/flameshot" = {
+      text = ''
+        xdotool_bin="${pkgs.xdotool}/bin/xdotool"
+        focusedwindow=$($xdotool_bin getactivewindow)
+        /usr/bin/flameshot gui  >/dev/null
+        if [ "$focusedwindow" = "$($xdotool_bin getactivewindow)" ]; then
+        	$xdotool_bin windowfocus $focusedwindow
+        fi
+      '';
+      executable = true;
+    };
   };
 
   xsession.windowManager.i3 = {
@@ -117,7 +131,7 @@ in {
         # LockScreen
         "${modifier}+x" = "exec $HOME/.config/i3/scripts/lock";
         # Print Screen with FlameShot
-        "Print" = "flameshot gui";
+        "Print" = "exec --no-startup-id $HOME/.config/i3/scripts/flameshot";
         # Resize Mode
         "${modifier}+r" = "mode \"resize\"";
         # Reload the configuration file
