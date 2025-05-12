@@ -1,0 +1,73 @@
+name: Ripper Builder Debian
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  ripper-setup:
+    runs-on: ubuntu-latest
+    container:
+      image: debian:bookworm
+    env:
+      NIX_USER: nixuser
+
+    steps:
+      - name: Install system dependencies
+        run: |
+          apt update -qq && \
+          apt install -y \
+            curl \
+            git \
+            passwd \
+            sudo \
+            xz-utils
+
+      - name: Create non-root user
+        run: |
+          useradd -m -s /bin/bash $NIX_USER
+          echo "$NIX_USER ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Nix (Daemon and Multi-User)
+        run: |
+          sudo -u $NIX_USER bash -c '
+            export USER=$NIX_USER
+            export HOME=/home/$NIX_USER
+            export YES=1
+            curl -fsSL https://nixos.org/nix/install | sh -s -- --daemon --yes
+          '
+          sudo /nix/var/nix/profiles/default/bin/nix-daemon &
+
+      - name:  Load Nix environment
+        run: |
+          echo ". /etc/profile.d/nix.sh" >> /home/$NIX_USER/.bashrc
+
+      - name: Configure Nix channels
+        run: |
+          sudo -u $NIX_USER bash -c '
+            . /etc/profile.d/nix.sh
+            nix-channel --add https://nixos.org/channels/nixpkgs-unstable nixpkgs-unstable
+            nix-channel --add https://github.com/nix-community/home-manager/archive/master.tar.gz home-manager
+            nix-channel --add https://github.com/nix-community/nixGL/archive/main.tar.gz nixgl 
+            nix-channel --update
+          '
+
+      - name: Install Home Manager
+        run: |
+          sudo -u $NIX_USER bash -c '
+            . /etc/profile.d/nix.sh
+            nix-shell "<home-manager>" -A install
+          '
+
+      - name: Apply Home Manager config
+        run: |
+          cp env.example.nix env.nix
+          sudo -u $NIX_USER bash -c '
+            . /etc/profile.d/nix.sh
+            home-manager switch -f ./home.nix -b backup
+          '
+
