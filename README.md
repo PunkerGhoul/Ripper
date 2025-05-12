@@ -7,6 +7,8 @@
 
     ```bash
     nix-channel --add https://github.com/nix-community/home-manager/archive/master.tar.gz home-manager
+    nix-channel --add https://nixos.org/channels/nixpkgs-unstable nixpkgs-unstable
+    nix-channel --add https://github.com/nix-community/nixGL/archive/main.tar.gz nixgl
     nix-channel --update
     nix-shell '<home-manager>' -A install
     ```
@@ -16,5 +18,7 @@
     ```bash
     git clone https://github.com/PunkerGhoul/Ripper.git
     cd Ripper
-    home-manager switch -f ./home.nix
+    cp env.example.nix env.nix
+    nano env.nix
+    home-manager switch -f ./home.nix -b backup
     ```
