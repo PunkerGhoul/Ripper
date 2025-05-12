@@ -9,16 +9,36 @@ let
     (builtins.readFile ./scripts/lock);
 in {
   home.activation.install-i3lock = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-      if [ ! -x /usr/bin/i3lock ] && ! /usr/bin/i3lock -v 2>/dev/null | grep -q '\.c\.'; then
-        /usr/bin/sudo bash -c '
-          set -e
-          /usr/bin/apt-get update -y
-          /usr/bin/apt-get install -y i3lock-color
-        '
+    if ! /usr/bin/i3lock -v 2>/dev/null | grep -q '\.c\.'; then
+      echo "Compiling i3lock-color from source..."
+      export PATH=$PATH:${pkgs.git}/bin:/usr/bin:/bin:/usr/local/bin
+      TMPDIR=$(mktemp -d)
+      cd "$TMPDIR"
+      git clone --depth 1 https://github.com/Raymo111/i3lock-color.git
+      cd i3lock-color
+      if command -v apt >/dev/null; then
+        export PATH=${pkgs.apt}/bin:$PATH
+        sudo apt update -y
+        sudo apt install -y \
+          build-essential autoconf pkg-config libpam0g-dev \
+          libcairo2-dev libxcb1-dev libev-dev libxkbcommon-dev \
+          libxkbcommon-x11-dev libxcb-xkb-dev libxcb-util0-dev \
+          libxcb-composite0-dev libxcb-randr0-dev libxcb-image0-dev \
+          libxcb-xinerama0-dev libxcb-xrm-dev libjpeg-dev libgif-dev
+      elif command -v pacman >/dev/null; then
+        export PATH=${pkgs.pacman}/bin:$PATH
+        pacman -Sy --noconfirm base-devel pam cairo libxcb xcb-util xcb-util-image \
+        xcb-util-keysyms xcb-util-wm libxkbcommon libev \
+        libjpeg libgif
       else
-        echo "i3lock-color already installed."
+        echo "No supported package manager found. Please install dependencies manually."
       fi
-    '';
+      export PATH=$PATH:${pkgs.gnumake}/bin
+      ./install-i3lock-color.sh > /dev/null
+      cd /
+      /bin/rm -rf "$TMPDIR"
+    fi
+  '';
 
   home.file = {
     ".config/i3/scripts/lock" = {
@@ -28,12 +48,12 @@ in {
 
     ".config/i3/scripts/flameshot" = {
       text = ''
+        #!/usr/bin/sh
+
         xdotool_bin="${pkgs.xdotool}/bin/xdotool"
         focusedwindow=$($xdotool_bin getactivewindow)
         /usr/bin/flameshot gui  >/dev/null
-        if [ "$focusedwindow" = "$($xdotool_bin getactivewindow)" ]; then
-        	$xdotool_bin windowfocus $focusedwindow
-        fi
+        [ "$focusedwindow" = "$($xdotool_bin getactivewindow)" ] && $xdotool_bin windowfocus $focusedwindow
       '';
       executable = true;
     };
@@ -74,8 +94,8 @@ in {
         # xss-lock grabs a logind suspend inhibit lock and will use i3lock to lock the
         # screen before suspend. Use loginctl lock-session to lock your screen.
         {
-        #  command = "xss-lock --transfer-sleep-lock -- i3lock --nofork";
-        #  command = "xss-lock --transfer-sleep-lock -- $HOME/.config/i3/scripts/lock";
+          #  command = "xss-lock --transfer-sleep-lock -- i3lock --nofork";
+          #  command = "xss-lock --transfer-sleep-lock -- $HOME/.config/i3/scripts/lock";
           command = "$HOME/.config/i3/scripts/lock";
           notification = false;
         }
