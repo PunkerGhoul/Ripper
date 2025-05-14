@@ -1,8 +1,9 @@
-{ config, pkgs, lib, ... }:
+{ config, lib, ... }:
 
 let
-  unstable = import <nixpkgs-unstable> {
-    inherit (pkgs) system;
+  sources = import ./nix/sources.nix;
+  pkgs = import sources.nixpkgs {};
+  unstable = import sources.nixpkgs-unstable {
     config.allowUnfree = true;
   };
 
@@ -86,6 +87,6 @@ in {
 
   imports = [
     (import ./configuration { inherit pkgs; })
-    (import ./modules { inherit config pkgs unstable lib env; })
+    (import ./modules { inherit config sources pkgs unstable lib env; })
   ];
 }

@@ -1,9 +1,9 @@
-{ config, pkgs }:
+{ config, sources, pkgs }:
 
 pkg:
 
 let
-  nixglPkgs = import <nixgl> { inherit pkgs; };
+  nixglPkgs = import sources.nixgl { inherit pkgs; };
 
   nixGL = "${nixglPkgs.auto.nixGLDefault}/bin/nixGL";
 in

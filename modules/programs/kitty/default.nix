@@ -1,7 +1,7 @@
-{ pkgs, unstable, config, ...}:
+{ sources, pkgs, unstable, config, ...}:
 
 let
-  nixGL = import ../../nixgl  { inherit pkgs config; };
+  nixGL = import ../../nixgl  { inherit config sources pkgs; };
 in {
   home.file.".config/kitty/color.ini".source = ./color.ini;
 
