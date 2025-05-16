@@ -1,13 +1,13 @@
-{ pkgs, unstable, config, ...}:
+{ config, pkgs, nixgl, ...}:
 
 let
-  nixGL = import ../../nixgl  { inherit pkgs config; };
+  nixGL = import ../../nixgl  { inherit config pkgs nixgl; };
 in {
   home.file.".config/kitty/color.ini".source = ./color.ini;
 
   programs.kitty = {
     enable = true;
-    package = (nixGL unstable.kitty);
+    package = (nixGL pkgs.kitty);
     font = {
       package = pkgs.meslo-lgs-nf;
       name = "MesloLGS NF";

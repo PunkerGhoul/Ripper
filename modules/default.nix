@@ -1,9 +1,9 @@
-{ config, pkgs, unstable, lib, env, ... }:
+{ config, pkgs, lib, nixgl, env, ... }:
 
 {
   imports = [
     (import ./x { inherit config pkgs lib; })
-    (import ./programs { inherit config pkgs unstable env; })
+    (import ./programs { inherit config pkgs nixgl env; })
     (import ./services { inherit config pkgs; })
   ];
 }

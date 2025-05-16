@@ -1,13 +1,8 @@
-{ config, pkgs, lib, ... }:
+{ inputs, config, pkgs, lib, username, ... }:
 
 let
-  unstable = import <nixpkgs-unstable> {
-    inherit (pkgs) system;
-    config.allowUnfree = true;
-  };
-
+  nixgl = inputs.nixgl;
   env = import ./env.nix;
-  username = builtins.getEnv "USER";
 in {
   # Home Manager needs a bit of information about you and the paths it should
   # manage.
@@ -86,6 +81,6 @@ in {
 
   imports = [
     (import ./configuration { inherit pkgs; })
-    (import ./modules { inherit config pkgs unstable lib env; })
+    (import ./modules { inherit config pkgs lib nixgl env; })
   ];
 }

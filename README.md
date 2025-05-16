@@ -20,5 +20,5 @@
     cd Ripper
     cp env.example.nix env.nix
     nano env.nix
-    home-manager switch -f ./home.nix -b backup
+    ./setup.sh && home-manager switch --impure --flake ~/.config/Ripper#$(/bin/id -gn) -b backup --show-trace
     ```
