@@ -257,7 +257,10 @@ in {
       defaultWorkspace = "workspace number 1";
       # Allocate applications to workspaces
       assigns = {
-        "2" = [{ class = "LibreWolf"; }];
+        "2" = [
+          { class = "Navigator"; }
+          { class = "librewolf"; }
+        ];
         "3" = [
           { class = "burp-StartBurp"; }
           { class = "org-zaproxy-zap-ZAP"; }
