@@ -147,7 +147,7 @@ in {
       ];
       keybindings = lib.mkOptionDefault {
         # Menu
-        "${modifier}+d" = "exec \"${pkgs.rofi}/bin/rofi -modi run,run -show run\"";
+        "${modifier}+d" = ''exec "env PATH=$PATH:${config.home.homeDirectory}/.local/bin ${pkgs.rofi}/bin/rofi -modi run,run -show run"'';
         # LockScreen
         "${modifier}+x" = "exec $HOME/.config/i3/scripts/lock";
         # Print Screen with FlameShot

@@ -17,6 +17,7 @@ in {
       export GOPATH=$HOME/.go
       export PATH="$PATH:$GOPATH/bin"
       export PATH="$PATH:$HOME/Documents/Tools"
+      export PATH="$PATH:$HOME/.local/bin"
     '';
     shellAliases = {
       ipfuscate = ''

@@ -9,5 +9,6 @@
     (import ./bat { inherit pkgs; })
     (import ./jq { inherit pkgs; })
     (import ./neovim { inherit pkgs unstable; })
+    (import ./librewolf { inherit pkgs; })
   ];
 }
