@@ -8,6 +8,6 @@
     (import ./git { inherit pkgs env; })
     (import ./bat { inherit pkgs; })
     (import ./jq { inherit pkgs; })
-    (import ./neovim { inherit pkgs; })
+    (import ./neovim { inherit pkgs unstable; })
   ];
 }
