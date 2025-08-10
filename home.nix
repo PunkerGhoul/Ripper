@@ -8,6 +8,9 @@ let
 
   env = import ./env.nix;
   username = builtins.getEnv "USER";
+
+  bashPath = "${pkgs.bash}/bin/bash";
+  librewolfPath = "${pkgs.librewolf}/bin/librewolf";
 in {
   # Home Manager needs a bit of information about you and the paths it should
   # manage.
@@ -21,7 +24,7 @@ in {
   # You should not change this value, even if you update Home Manager. If you do
   # want to update the value, then make sure to first check the Home Manager
   # release notes.
-  home.stateVersion = "24.11"; # Please read the comment before changing.
+  home.stateVersion = "25.05"; # Please read the comment before changing.
 
   # The home.packages option allows you to install Nix packages into your
   # environment.
@@ -44,6 +47,12 @@ in {
     # '')
   ];
 
+  # Home Manager Extra directories to prepend to PATH.
+  # # These directories are added to the PATH variable in a double-quoted context, so expressions like $HOME are expanded by the shell.
+  # # However, since expressions like ~ or * are escaped, they will end up in the PATH verbatim.
+  home.sessionPath = [
+  ];
+
   # Home Manager is pretty good at managing dotfiles. The primary way to manage
   # plain files is through 'home.file'.
   home.file = {
@@ -59,6 +68,24 @@ in {
     # '';
 
     ".hushlogin".text = "";
+
+    # LibreWolf
+    ## Personal profile
+    ".local/bin/librewolf-personal" = {
+      text = ''
+      #!${bashPath}
+        ${librewolfPath} -P "Personal" "$@"
+      '';
+      executable = true;
+    };
+    ## Pentesting profile
+    ".local/bin/librewolf-pentesting" = {
+      text = ''
+      #!${bashPath}
+        ${librewolfPath} -P "Pentesting" "$@"
+      '';
+      executable = true;
+    };
   };
 
   # Home Manager can also manage your environment variables through
