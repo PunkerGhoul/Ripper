@@ -18,6 +18,7 @@ in {
       export PATH="$PATH:$GOPATH/bin"
       export PATH="$PATH:$HOME/Documents/Tools"
       export PATH="$PATH:$HOME/.local/bin"
+      export FZF_BASE="${pkgs.fzf}/share/fzf"
     '';
     shellAliases = {
       ipfuscate = ''
