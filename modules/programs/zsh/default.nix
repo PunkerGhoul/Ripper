@@ -1,4 +1,4 @@
-{ pkgs, ...}:
+{ config, pkgs, ...}:
 
 let
   ohMyZshConfig = import ./oh-my-zsh { inherit pkgs; };
@@ -6,10 +6,10 @@ let
 in {
   programs.zsh = {
     enable = true;
-    dotDir = ".config/zsh";
+    dotDir = "${config.home.homeDirectory}/.config/zsh";
     profileExtra = ''
       if [ -z "$DISPLAY" ] && [ "$XDG_VTNR" = 1 ] && [ "$(tty)" = "/dev/tty1" ]; then
-        exec startx ${pkgs.i3}/bin/i3
+        exec /usr/bin/startx ${pkgs.i3}/bin/i3
       fi
     '';
     envExtra = ''
@@ -18,6 +18,7 @@ in {
       export PATH="$PATH:$GOPATH/bin"
       export PATH="$PATH:$HOME/Documents/Tools"
       export PATH="$PATH:$HOME/.local/bin"
+      export FZF_BASE="${pkgs.fzf}/share/fzf"
     '';
     shellAliases = {
       ipfuscate = ''
