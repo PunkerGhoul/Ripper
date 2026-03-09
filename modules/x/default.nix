@@ -13,18 +13,19 @@
         sudo apt update -y
         sudo apt install -y \
           xorg xorg-dev x11-apps xinit
+        echo "Xorg installation completed using apt."
       elif command -v pacman >/dev/null; then
         echo "Detected Arch Linux system, using pacman..."
         export PATH=${pkgs.pacman}/bin:$PATH
         sudo pacman -Sy --needed --noconfirm \
           xorg-server xorg-xinit xorg-xauth xorg-apps
+        echo "Xorg installation completed using pacman."
       else
         echo "Warning: No supported package manager found (apt or pacman)."
         echo "Please install Xorg core packages manually:"
         echo "  - xorg-server, xorg-xinit, xorg-xauth, xorg-apps"
+        echo "Xorg installation skipped: unable to install packages automatically."
       fi
-      
-      echo "Xorg installation completed."
     else
       echo "Xorg is already installed."
     fi
