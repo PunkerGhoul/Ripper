@@ -17,7 +17,7 @@
       elif command -v pacman >/dev/null; then
         echo "Detected Arch Linux system, using pacman..."
         export PATH=${pkgs.pacman}/bin:$PATH
-        sudo pacman -Sy --needed --noconfirm \
+        sudo pacman -Syu --needed --noconfirm \
           xorg-server xorg-xinit xorg-xauth xorg-apps
         echo "Xorg installation completed using pacman."
       else
