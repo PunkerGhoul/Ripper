@@ -27,9 +27,9 @@ in {
           libxcb-xinerama0-dev libxcb-xrm-dev libjpeg-dev libgif-dev
       elif command -v pacman >/dev/null; then
         export PATH=${pkgs.pacman}/bin:$PATH
-        pacman -Sy --noconfirm base-devel pam cairo libxcb xcb-util xcb-util-image \
-        xcb-util-keysyms xcb-util-wm libxkbcommon libev \
-        libjpeg libgif
+        sudo pacman -Sy --noconfirm base-devel pam cairo libxcb xcb-util xcb-util-image \
+        xcb-util-keysyms xcb-util-wm xcb-util-xrm libxkbcommon libxkbcommon-x11 libev \
+        libjpeg giflib
       else
         echo "No supported package manager found. Please install dependencies manually."
       fi
