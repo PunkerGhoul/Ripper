@@ -9,7 +9,7 @@ in {
     dotDir = ".config/zsh";
     profileExtra = ''
       if [ -z "$DISPLAY" ] && [ "$XDG_VTNR" = 1 ] && [ "$(tty)" = "/dev/tty1" ]; then
-        exec startx ${pkgs.i3}/bin/i3
+        exec /usr/bin/startx ${pkgs.i3}/bin/i3
       fi
     '';
     envExtra = ''
