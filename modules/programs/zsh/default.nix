@@ -1,4 +1,4 @@
-{ pkgs, ...}:
+{ config, pkgs, ...}:
 
 let
   ohMyZshConfig = import ./oh-my-zsh { inherit pkgs; };
@@ -6,7 +6,7 @@ let
 in {
   programs.zsh = {
     enable = true;
-    dotDir = ".config/zsh";
+    dotDir = "${config.home.homeDirectory}/.config/zsh";
     profileExtra = ''
       if [ -z "$DISPLAY" ] && [ "$XDG_VTNR" = 1 ] && [ "$(tty)" = "/dev/tty1" ]; then
         exec /usr/bin/startx ${pkgs.i3}/bin/i3
