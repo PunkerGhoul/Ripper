@@ -21,9 +21,9 @@ imagemagick_bin={{imagemagickBin}}
 scrot_bin={{scrotBin}}
 
 $scrot_bin/scrot -o -q 100 "$temp_pic"
-$imagemagick_bin/convert "$temp_pic" -paint 3 -swirl 270 "$temp_pic"
+$imagemagick_bin/magick "$temp_pic" -paint 3 -swirl 270 "$temp_pic"
 
-/usr/bin/i3lock \
+{{i3lockBin}}/i3lock \
     -n -t -e -i "$temp_pic" \
     --clock --time-pos='x+110:h-70' \
     --date-align 1 --date-str "$locktext" --date-pos='x+43:h-45' \

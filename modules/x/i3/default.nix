@@ -3,42 +3,66 @@
 let
   modifier = config.xsession.windowManager.i3.config.modifier;
 
+  i3lock-color = pkgs.stdenv.mkDerivation rec {
+    pname = "i3lock-color";
+    version = "2.13.c.5";
+
+    src = pkgs.fetchFromGitHub {
+      owner = "Raymo111";
+      repo = "i3lock-color";
+      rev = version;
+      hash = "sha256-fuLeglRif2bruyQRqiL3nm3q6qxoHcPdVdL+QjGBR/k=";
+    };
+
+    nativeBuildInputs = with pkgs; [
+      autoconf
+      automake
+      pkg-config
+      makeWrapper
+    ];
+
+    buildInputs = with pkgs; [
+      pam
+      cairo
+      libev
+      libxkbcommon
+      libjpeg
+      giflib
+      libxcb
+      libxcb-util
+      libxcb-image
+      xcbutilxrm
+      libxcb-keysyms
+    ];
+
+    preConfigure = ''
+      autoreconf -fiv
+      mkdir -p _build
+      cd _build
+    '';
+
+    configureScript = "../configure";
+
+    buildPhase = ''
+      runHook preBuild
+      make
+      runHook postBuild
+    '';
+
+    installPhase = ''
+      runHook preInstall
+      install -Dm755 i3lock $out/bin/.i3lock-wrapped
+      makeWrapper $out/bin/.i3lock-wrapped $out/bin/i3lock \
+        --prefix LD_LIBRARY_PATH : /usr/lib:/usr/lib/x86_64-linux-gnu:/lib/x86_64-linux-gnu
+      runHook postInstall
+    '';
+  };
+
   lockScript = builtins.replaceStrings
-    [ "{{scrotBin}}" "{{imagemagickBin}}" ]
-    [ "${pkgs.scrot}/bin" "${pkgs.imagemagick}/bin" ]
+    [ "{{scrotBin}}" "{{imagemagickBin}}" "{{i3lockBin}}" ]
+    [ "${pkgs.scrot}/bin" "${pkgs.imagemagick}/bin" "${i3lock-color}/bin" ]
     (builtins.readFile ./scripts/lock);
 in {
-  home.activation.install-i3lock = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-    if ! /usr/bin/i3lock -v 2>/dev/null | grep -q '\.c\.'; then
-      echo "Compiling i3lock-color from source..."
-      export PATH=$PATH:${pkgs.git}/bin:/usr/bin:/bin:/usr/local/bin
-      TMPDIR=$(mktemp -d)
-      cd "$TMPDIR"
-      git clone --depth 1 https://github.com/Raymo111/i3lock-color.git
-      cd i3lock-color
-      if command -v apt >/dev/null; then
-        export PATH=${pkgs.apt}/bin:$PATH
-        sudo apt update -y
-        sudo apt install -y \
-          build-essential autoconf pkg-config libpam0g-dev \
-          libcairo2-dev libxcb1-dev libev-dev libxkbcommon-dev \
-          libxkbcommon-x11-dev libxcb-xkb-dev libxcb-util0-dev \
-          libxcb-composite0-dev libxcb-randr0-dev libxcb-image0-dev \
-          libxcb-xinerama0-dev libxcb-xrm-dev libjpeg-dev libgif-dev
-      elif command -v pacman >/dev/null; then
-        export PATH=${pkgs.pacman}/bin:$PATH
-        sudo pacman -Sy --noconfirm base-devel pam cairo libxcb xcb-util xcb-util-image \
-        xcb-util-keysyms xcb-util-wm xcb-util-xrm libxkbcommon libxkbcommon-x11 libev \
-        libjpeg giflib
-      else
-        echo "No supported package manager found. Please install dependencies manually."
-      fi
-      export PATH=$PATH:${pkgs.gnumake}/bin
-      ./install-i3lock-color.sh > /dev/null
-      cd /
-      /bin/rm -rf "$TMPDIR"
-    fi
-  '';
 
   home.file = {
     ".config/i3/scripts/lock" = {
