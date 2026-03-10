@@ -3,6 +3,20 @@
 let
   theme = "cuts";
 
+  featherFont = pkgs.stdenvNoCC.mkDerivation {
+    pname = "feather-font";
+    version = "unstable";
+    src = pkgs.fetchurl {
+      url = "https://github.com/adi1090x/polybar-themes/raw/master/fonts/feather.ttf";
+      sha256 = "0n01h49l49n8n1m8g1f6dhyn6cc1d82jxmpjzs5ydsrbmxi83b4h";
+    };
+    dontUnpack = true;
+    installPhase = ''
+      mkdir -p $out/share/fonts/truetype
+      cp $src $out/share/fonts/truetype/feather.ttf
+    '';
+  };
+
   polybarReload = pkgs.runCommandCC "polybar-reload" {} ''
     mkdir -p $out/bin
     $CC ${pkgs.replaceVars ./polybar-reload.c {
@@ -35,6 +49,19 @@ let
   '';
 in
 {
+  home.packages = [
+    pkgs.nerd-fonts.iosevka
+    pkgs.nerd-fonts.symbols-only
+  ];
+
+  home.file.".config/fontconfig/conf.d/99-feather.conf".text = ''
+    <?xml version="1.0"?>
+    <!DOCTYPE fontconfig SYSTEM "fonts.dtd">
+    <fontconfig>
+      <dir>${featherFont}/share/fonts/truetype</dir>
+    </fontconfig>
+  '';
+
   home.file.".config/polybar" = {
     source = polybarTheme;
     recursive = true;
@@ -49,6 +76,7 @@ in
     enable = true;
     package = pkgs.polybarFull;
     script = ''
+      ${pkgs.fontconfig}/bin/fc-cache
       $HOME/.config/polybar/launch.sh --${theme} &
       $HOME/.local/bin/polybar-reload &
     '';
