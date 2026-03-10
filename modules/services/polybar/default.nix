@@ -3,6 +3,26 @@
 let
   theme = "cuts";
 
+  # Colour overrides – format: "#AARRGGBB" or "#RRGGBB".
+  # Leave empty to keep the theme default.
+  colors = {
+    background     = "";
+    background-alt = "";
+    foreground     = "";
+    foreground-alt = "";
+    primary        = "";
+    red            = "";
+    green          = "";
+    yellow         = "";
+  };
+
+  # Only generate sed args for keys that have a non-empty value.
+  colorSedArgs = pkgs.lib.concatStringsSep " " (
+    pkgs.lib.mapAttrsToList
+      (key: val: "-e 's|^${key} = .*|${key} = ${val}|'")
+      (pkgs.lib.filterAttrs (_: val: val != "") colors)
+  );
+
   featherFont = pkgs.stdenvNoCC.mkDerivation {
     pname = "feather-font";
     version = "unstable";
@@ -37,6 +57,9 @@ let
     cp ${./polybar-themes}/launch.sh $out/launch.sh
     cp -r ${./polybar-themes}/${theme} $out/${theme}
     chmod -R u+w $out
+    ${pkgs.lib.optionalString (pkgs.lib.any (v: v != "") (pkgs.lib.attrValues colors)) ''
+      sed -i ${colorSedArgs} $out/${theme}/colors.ini
+    ''}
     find $out -name "*.sh" | xargs -r sed -i \
       -e 's|polybar-msg |${pkgs.polybarFull}/bin/polybar-msg |g' \
       -e 's|polybar -q|${pkgs.polybarFull}/bin/polybar -q|g' \
