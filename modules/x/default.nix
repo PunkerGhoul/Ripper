@@ -2,49 +2,36 @@
 
 {
   home.activation.install-xorg = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-    echo "Checking Xorg installation..."
-    
-    if ! command -v X >/dev/null || ! command -v xinit >/dev/null; then
-      echo "Installing Xorg core packages..."
-      
-      if command -v apt >/dev/null; then
-        echo "Detected Debian/Ubuntu system, using apt..."
-        export PATH=${pkgs.apt}/bin:$PATH
-        sudo apt update -y
-        sudo apt install -y \
-          xorg xorg-dev x11-apps xinit
-        echo "Xorg installation completed using apt."
-      elif command -v pacman >/dev/null; then
-        echo "Detected Arch Linux system, using pacman..."
-        export PATH=${pkgs.pacman}/bin:$PATH
-        sudo pacman -Syu --needed --noconfirm \
-          xorg-server xorg-xinit xorg-xauth xorg-apps
-        echo "Xorg installation completed using pacman."
+    if ! [ -x /usr/bin/X ] || ! [ -x /usr/bin/xinit ]; then
+      if [ -x /usr/bin/apt ]; then
+        /usr/bin/sudo /usr/bin/apt update -y
+        /usr/bin/sudo /usr/bin/apt install -y xorg xorg-dev x11-apps xinit
+      elif [ -x /usr/bin/pacman ]; then
+        /usr/bin/sudo /usr/bin/pacman -Syu --needed --noconfirm xorg-server xorg-xinit xorg-xauth xorg-apps
       else
-        echo "Warning: No supported package manager found (apt or pacman)."
-        echo "Please install Xorg core packages manually:"
-        echo "  - xorg-server, xorg-xinit, xorg-xauth, xorg-apps"
-        echo "Xorg installation skipped: unable to install packages automatically."
+        echo "Warning: no supported package manager found. Install xorg-server, xorg-xinit, xorg-xauth, xorg-apps manually."
       fi
-    else
-      echo "Xorg is already installed."
     fi
   '';
 
   home.activation.install-vmware-tools = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
     echo "Checking VMware environment..."
     
-    # Detect VMware using lspci
+    # Detect VMware using pkgs from the nix store
     is_vmware=false
-    if command -v lspci >/dev/null 2>&1; then
-      if lspci 2>/dev/null | grep -qi vmware; then
+    if ${pkgs.gnugrep}/bin/grep -qi vmware /sys/class/dmi/id/sys_vendor 2>/dev/null \
+       || ${pkgs.gnugrep}/bin/grep -qi vmware /sys/class/dmi/id/product_name 2>/dev/null; then
+      is_vmware=true
+    fi
+    
+    if [ "$is_vmware" = "false" ]; then
+      if ${pkgs.systemd}/bin/systemd-detect-virt 2>/dev/null | ${pkgs.gnugrep}/bin/grep -qi vmware; then
         is_vmware=true
       fi
     fi
     
-    # Fallback to dmesg if lspci not available
-    if [ "$is_vmware" = "false" ] && command -v dmesg >/dev/null 2>&1; then
-      if sudo dmesg 2>/dev/null | grep -qi vmware; then
+    if [ "$is_vmware" = "false" ]; then
+      if ${pkgs.pciutils}/bin/lspci 2>/dev/null | ${pkgs.gnugrep}/bin/grep -qi vmware; then
         is_vmware=true
       fi
     fi
@@ -55,73 +42,21 @@
     fi
     
     echo "VMware environment detected."
-    
-    # Step 1: Install open-vm-tools if not present
-    if ! command -v vmware-toolbox-cmd >/dev/null 2>&1; then
-      echo "Installing open-vm-tools..."
-      
-      if command -v apt >/dev/null 2>&1; then
-        sudo apt update -y
-        sudo apt install -y open-vm-tools open-vm-tools-desktop fuse3
-        echo "open-vm-tools installed via apt."
-      elif command -v pacman >/dev/null 2>&1; then
-        sudo pacman -S --needed --noconfirm open-vm-tools gtkmm3 fuse3
-        echo "open-vm-tools installed via pacman."
-      else
-        echo "WARNING: Cannot install open-vm-tools automatically."
-        echo "Please install manually and run: home-manager switch"
-        exit 0
-      fi
+
+    if [ -x /usr/bin/apt ]; then
+      /usr/bin/sudo /usr/bin/apt update -y
+      /usr/bin/sudo /usr/bin/apt install -y open-vm-tools open-vm-tools-desktop fuse3
+    elif [ -x /usr/bin/pacman ]; then
+      /usr/bin/sudo /usr/bin/pacman -Syu --needed --noconfirm open-vm-tools gtkmm3 fuse3
     else
-      echo "open-vm-tools already installed."
-      
-      # Ensure fuse and desktop components are installed
-      if command -v apt >/dev/null 2>&1; then
-        if ! dpkg -l | grep -q "^ii.*fuse3"; then
-          sudo apt install -y fuse3
-        fi
-        if ! dpkg -l | grep -q "^ii.*open-vm-tools-desktop"; then
-          sudo apt install -y open-vm-tools-desktop
-        fi
-      elif command -v pacman >/dev/null 2>&1; then
-        if ! pacman -Q fuse3 >/dev/null 2>&1; then
-          sudo pacman -S --needed --noconfirm fuse3
-        fi
-        if ! pacman -Q gtkmm3 >/dev/null 2>&1; then
-          sudo pacman -S --needed --noconfirm gtkmm3
-        fi
-      fi
+      echo "WARNING: No supported package manager found. Install open-vm-tools, open-vm-tools-desktop and fuse3 manually."
+      exit 0
     fi
-    
-    # Step 2: Enable and start vmtoolsd and vmware-vmblock-fuse services
-    if systemctl is-active vmtoolsd >/dev/null 2>&1; then
-      echo "vmtoolsd service is already running."
-    else
-      echo "Enabling and starting vmtoolsd service..."
-      if sudo systemctl enable vmtoolsd 2>/dev/null && sudo systemctl start vmtoolsd 2>/dev/null; then
-        echo "vmtoolsd service started successfully."
-      else
-        echo "WARNING: Failed to start vmtoolsd service."
-        echo "Try manually: sudo systemctl enable --now vmtoolsd"
-      fi
-    fi
-    
-    # Enable vmware-vmblock-fuse service
-    if systemctl is-enabled vmware-vmblock-fuse.service >/dev/null 2>&1; then
-      echo "vmware-vmblock-fuse.service already enabled."
-    else
-      echo "Enabling vmware-vmblock-fuse.service..."
-      if sudo systemctl enable vmware-vmblock-fuse.service 2>/dev/null; then
-        echo "vmware-vmblock-fuse.service enabled."
-      fi
-    fi
-    
-    if systemctl is-active vmware-vmblock-fuse.service >/dev/null 2>&1; then
-      echo "vmware-vmblock-fuse.service is already running."
-    else
-      echo "Starting vmware-vmblock-fuse.service..."
-      sudo systemctl start vmware-vmblock-fuse.service 2>/dev/null || echo "Note: vmware-vmblock-fuse.service will start on next boot."
-    fi
+
+    for svc in vmtoolsd vmware-vmblock-fuse.service; do
+      /usr/bin/sudo ${pkgs.systemd}/bin/systemctl enable --now "$svc" 2>/dev/null \
+        || echo "WARNING: could not enable $svc"
+    done
   '';
 
   systemd.user.services.vmware-user = {
