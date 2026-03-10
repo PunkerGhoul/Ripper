@@ -1,11 +1,11 @@
-{ config, pkgs, unstable, env,... }:
+{ config, pkgs, lib, unstable, env,... }:
 
 {
   imports = [
     (import ./rofi { inherit config pkgs; })
     (import ./kitty { inherit config pkgs unstable; })
     (import ./tmux { inherit pkgs; })
-    (import ./zsh { inherit config pkgs; })
+    (import ./zsh { inherit config pkgs lib; })
     (import ./git { inherit pkgs env; })
     (import ./bat { inherit pkgs; })
     (import ./jq { inherit pkgs; })
