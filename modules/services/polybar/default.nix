@@ -2,6 +2,22 @@
 
 let
   theme = "cuts";
+
+  polybarReload = pkgs.runCommandCC "polybar-reload" {} ''
+    mkdir -p $out/bin
+    $CC ${pkgs.replaceVars ./polybar-reload.c {
+      polybarMsg = "${pkgs.polybarFull}/bin/polybar-msg";
+    }} \
+      -I${pkgs.xorgproto}/include \
+      -I${pkgs.libX11.dev}/include \
+      -I${pkgs.libXrender.dev}/include \
+      -I${pkgs.libXrandr.dev}/include \
+      -L${pkgs.libX11}/lib \
+      -L${pkgs.libXrandr}/lib \
+      -lX11 -lXrandr \
+      -o $out/bin/polybar-reload
+  '';
+
   polybarTheme = pkgs.runCommand "polybar-theme-${theme}" {} ''
     mkdir -p $out
     cp ${./polybar-themes}/launch.sh $out/launch.sh
@@ -25,9 +41,7 @@ in
   };
 
   home.file.".local/bin/polybar-reload" = {
-    source = pkgs.replaceVars ./polybar-reload {
-      python3 = "${pkgs.python3.withPackages (ps: [ ps.xlib ])}/bin/python3";
-    };
+    source = "${polybarReload}/bin/polybar-reload";
     executable = true;
   };
 
