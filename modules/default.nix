@@ -3,7 +3,7 @@
 {
   imports = [
     (import ./x { inherit config pkgs lib; })
-    (import ./programs { inherit config pkgs unstable env; })
+    (import ./programs { inherit config pkgs lib unstable env; })
     (import ./services { inherit config pkgs; })
   ];
 }

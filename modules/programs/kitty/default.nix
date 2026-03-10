@@ -31,6 +31,7 @@ in {
       tab_powerline_style = "round";
       background_opacity = 0.7;
       shell = "zsh";
+      term = "xterm-256color";
     };
   };
 }
