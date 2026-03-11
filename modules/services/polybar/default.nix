@@ -35,7 +35,7 @@ in
     enable = true;
     package = pkgs.polybarFull;
     script = ''
-      ${pkgs.fontconfig}/bin/fc-cache
+      ${pkgs.fontconfig}/bin/fc-cache -f
       $HOME/.config/polybar/launch.sh --${theme} &
       $HOME/.local/bin/polybar-reload &
     '';

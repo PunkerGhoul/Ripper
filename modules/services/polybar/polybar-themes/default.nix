@@ -26,6 +26,10 @@ pkgs.runCommand "polybar-theme-${theme}" { } ''
   cp ${./.}/launch.sh $out/launch.sh
   cp -r ${./.}/${theme} $out/${theme}
   chmod -R u+w $out
+  # Strip UTF-8 BOM from all .ini files (polybar does not support BOM)
+  find $out -name "*.ini" | xargs -r sed -i '1s/^\xEF\xBB\xBF//'
+  # Use pulseaudio module (works with pipewire's PA compatibility layer)
+  sed -i 's|\bvolume\b|pulseaudio|g' $out/${theme}/config.ini
   ${pkgs.lib.optionalString (pkgs.lib.any (v: v != "") (pkgs.lib.attrValues colors)) ''
     sed -i ${colorSedArgs} $out/${theme}/colors.ini
   ''}
