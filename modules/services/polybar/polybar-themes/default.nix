@@ -1,0 +1,41 @@
+{ pkgs, theme }:
+
+let
+  # Colour overrides – format: "#AARRGGBB" or "#RRGGBB".
+  # Leave empty to keep the theme default.
+  colors = {
+    background     = "";
+    background-alt = "";
+    foreground     = "";
+    foreground-alt = "#9433f5f5";
+    primary        = "#6435fd";
+    red            = "#ff2623";
+    green          = "#10af18";
+    yellow         = "#ffe81d";
+  };
+
+  colorSedArgs = pkgs.lib.concatStringsSep " " (
+    pkgs.lib.mapAttrsToList
+      (key: val: "-e 's|^${key} = .*|${key} = ${val}|'")
+      (pkgs.lib.filterAttrs (_: val: val != "") colors)
+  );
+in
+
+pkgs.runCommand "polybar-theme-${theme}" { } ''
+  mkdir -p $out
+  cp ${./.}/launch.sh $out/launch.sh
+  cp -r ${./.}/${theme} $out/${theme}
+  chmod -R u+w $out
+  ${pkgs.lib.optionalString (pkgs.lib.any (v: v != "") (pkgs.lib.attrValues colors)) ''
+    sed -i ${colorSedArgs} $out/${theme}/colors.ini
+  ''}
+  find $out -name "*.sh" | xargs -r sed -i \
+    -e 's|polybar-msg |${pkgs.polybarFull}/bin/polybar-msg |g' \
+    -e 's|polybar -q|${pkgs.polybarFull}/bin/polybar -q|g' \
+    -e 's|killall -q polybar|${pkgs.psmisc}/bin/killall -q polybar|g' \
+    -e 's|pgrep -u|${pkgs.procps}/bin/pgrep -u|g' \
+    -e 's|rofi -|${pkgs.rofi}/bin/rofi -|g' \
+    -e 's|notify-send |${pkgs.libnotify}/bin/notify-send |g' \
+    -e 's|ifconfig|${pkgs.net-tools}/bin/ifconfig|g' \
+    -e 's|i3-msg |${pkgs.i3}/bin/i3-msg |g'
+''
