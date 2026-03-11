@@ -1,13 +1,14 @@
-{ pkgs, ... }:
+{ pkgs, lib, ... }:
 
 let
-  # Pure-PipeWire fallback script.
+  # Fallback script — pure PipeWire, no PulseAudio tooling.
   #
-  # wpctl set-profile requires a NUMERIC index, not the profile name string.
-  # We use pw-cli enum-params to discover the index for "output:analog-stereo"
-  # and then pass that integer to wpctl — no PulseAudio tooling involved.
+  # pw-cli enum-params output per profile block:
+  #   Prop: key Spa:Pod:Object:Param:Profile:index ... Int 1
+  #   Prop: key Spa:Pod:Object:Param:Profile:name  ... String "output:analog-stereo"
+  # awk tracks the last seen "Int N" value; prints N when it meets the target name.
+  # pw-cli set-param uses SPA-JSON: '{ index: N }'
   audioProfileFixScript = pkgs.writeShellScript "vmware-audio-profile-fix" ''
-    # Wait for WirePlumber to finish device enumeration
     sleep 3
 
     for dev_id in $(
@@ -19,17 +20,21 @@ let
             | .id
           '
     ); do
-      # pw-cli enum-params prints each profile block with "index: N" before
-      # "name: ...", so grep -B2 on the name reliably captures its index line.
       profile_idx=$(
         ${pkgs.pipewire}/bin/pw-cli enum-params "$dev_id" EnumProfile 2>/dev/null \
-          | ${pkgs.gnugrep}/bin/grep -B2 '"output:analog-stereo"' \
-          | ${pkgs.gnugrep}/bin/grep -o 'index: [0-9]*' \
-          | ${pkgs.gnused}/bin/sed 's/index: //' \
-          | tail -1
+          | ${pkgs.gawk}/bin/awk '
+              /Spa:Pod:Object:Param:Profile:index/ {
+                match($0, /Int ([0-9]+)/, m); idx = m[1]
+              }
+              /Spa:Pod:Object:Param:Profile:name/ && /output:analog-stereo/ {
+                print idx; exit
+              }
+            '
       )
-      [ -n "$profile_idx" ] && \
-        ${pkgs.wireplumber}/bin/wpctl set-profile "$dev_id" "$profile_idx" 2>/dev/null || true
+      if [ -n "$profile_idx" ]; then
+        ${pkgs.pipewire}/bin/pw-cli set-param "$dev_id" Profile "{ index: $profile_idx }" 2>/dev/null \
+          && echo "vmware-audio: device $dev_id → output:analog-stereo (index $profile_idx)"
+      fi
     done
   '';
 in
@@ -39,18 +44,15 @@ in
     pavucontrol
   ];
 
-  # Run EasyEffects as a headless background service.
-  services.easyeffects = {
-    enable = true;
-  };
+  services.easyeffects.enable = true;
 
   # ── WirePlumber drop-in ────────────────────────────────────────────────────
-  # VMware's virtual audio device (ES1371/Ensoniq) only exposes an output
-  # side.  WirePlumber defaults to "Analog Stereo Duplex", which tries to
-  # claim a capture device ID that doesn't exist in VMware → "out of range".
+  # device.profile.default  – profile WirePlumber selects at device creation.
+  # api.acp.auto-profile    – prevents ACP from overriding it later with its
+  #                           "best profile" heuristic (which picks Duplex).
   #
-  # device.profile.default tells WirePlumber which profile to activate when
-  # it first creates the device object, before any other policy runs.
+  # Together they keep the card on output:analog-stereo and stop WirePlumber
+  # from probing the Duplex profile, which fails on VMware (no capture device).
   xdg.configFile."wireplumber/wireplumber.conf.d/50-vmware-audio.conf".text = ''
     monitor.alsa.rules = [
       {
@@ -59,17 +61,26 @@ in
         ]
         actions = {
           update-props = {
-            device.profile.default = "output:analog-stereo"
+            device.profile.default  = "output:analog-stereo"
+            api.acp.auto-profile    = false
           }
         }
       }
     ]
   '';
 
+  # ── Clear WirePlumber saved state on every deploy ─────────────────────────
+  # WirePlumber persists the last-used profile in ~/.local/state/wireplumber/.
+  # If Duplex was ever saved there it overrides device.profile.default, so we
+  # wipe it on each home-manager switch; WirePlumber rebuilds it correctly on
+  # its next start using the drop-in config above.
+  home.activation.clear-wireplumber-state = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    rm -rf "$HOME/.local/state/wireplumber"
+  '';
+
   # ── Systemd fallback ───────────────────────────────────────────────────────
-  # Runs once per login after wireplumber is up.  Handles sessions where
-  # WirePlumber already started with the wrong profile before the drop-in
-  # was deployed, or on first boot before the drop-in takes effect.
+  # Belt-and-suspenders: forces the correct profile via pw-cli after every
+  # WirePlumber start, in case the drop-in alone isn't honoured.
   systemd.user.services.vmware-audio-profile = {
     Unit = {
       Description = "Set Analog Stereo Output profile for VMware audio";
