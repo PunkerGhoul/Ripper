@@ -1,4 +1,4 @@
-{ config, pkgs, ... }:
+{ config, pkgs, lib, ... }:
 
 {
   imports = [
@@ -7,6 +7,6 @@
     (import ./polybar { inherit config pkgs; })
     (import ./dunst { inherit config pkgs; })
     (import ./picom { inherit pkgs; })
-    (import ./audio { inherit pkgs; })
+    (import ./audio { inherit pkgs lib; })
   ];
 }
