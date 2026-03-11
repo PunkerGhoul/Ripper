@@ -1,13 +1,16 @@
 { pkgs, ... }:
 
 let
-  # Pure-PipeWire fallback: uses pw-dump (pipewire) + jq to find ALSA card
-  # device IDs, then wpctl (wireplumber) to set the profile.
-  # No PulseAudio dependency at all.
+  # Pure-PipeWire fallback script.
+  #
+  # wpctl set-profile requires a NUMERIC index, not the profile name string.
+  # We use pw-cli enum-params to discover the index for "output:analog-stereo"
+  # and then pass that integer to wpctl — no PulseAudio tooling involved.
   audioProfileFixScript = pkgs.writeShellScript "vmware-audio-profile-fix" ''
-    # Wait for wireplumber to finish device enumeration
-    sleep 2
-    for id in $(
+    # Wait for WirePlumber to finish device enumeration
+    sleep 3
+
+    for dev_id in $(
       ${pkgs.pipewire}/bin/pw-dump \
         | ${pkgs.jq}/bin/jq -r '
             .[]
@@ -16,7 +19,17 @@ let
             | .id
           '
     ); do
-      ${pkgs.wireplumber}/bin/wpctl set-profile "$id" output:analog-stereo 2>/dev/null || true
+      # pw-cli enum-params prints each profile block with "index: N" before
+      # "name: ...", so grep -B2 on the name reliably captures its index line.
+      profile_idx=$(
+        ${pkgs.pipewire}/bin/pw-cli enum-params "$dev_id" EnumProfile 2>/dev/null \
+          | ${pkgs.gnugrep}/bin/grep -B2 '"output:analog-stereo"' \
+          | ${pkgs.gnugrep}/bin/grep -o 'index: [0-9]*' \
+          | ${pkgs.gnused}/bin/sed 's/index: //' \
+          | tail -1
+      )
+      [ -n "$profile_idx" ] && \
+        ${pkgs.wireplumber}/bin/wpctl set-profile "$dev_id" "$profile_idx" 2>/dev/null || true
     done
   '';
 in
