@@ -2,32 +2,32 @@
 
 let
   theme = "cuts";
-  polybarTheme = pkgs.runCommand "polybar-theme-${theme}" {} ''
-    mkdir -p $out
-    cp ${./polybar-themes}/launch.sh $out/launch.sh
-    cp -r ${./polybar-themes}/${theme} $out/${theme}
-    chmod -R u+w $out
-    find $out -name "*.sh" | xargs -r sed -i \
-      -e 's|polybar-msg |${pkgs.polybarFull}/bin/polybar-msg |g' \
-      -e 's|polybar -q|${pkgs.polybarFull}/bin/polybar -q|g' \
-      -e 's|killall -q polybar|${pkgs.psmisc}/bin/killall -q polybar|g' \
-      -e 's|pgrep -u|${pkgs.procps}/bin/pgrep -u|g' \
-      -e 's|rofi -|${pkgs.rofi}/bin/rofi -|g' \
-      -e 's|notify-send |${pkgs.libnotify}/bin/notify-send |g' \
-      -e 's|ifconfig|${pkgs.net-tools}/bin/ifconfig|g' \
-      -e 's|i3-msg |${pkgs.i3}/bin/i3-msg |g'
-  '';
+
+  featherFont   = import ./feather-font.nix { inherit pkgs; };
+  polybarReload = import ./polybar-reload   { inherit pkgs; };
+  polybarTheme  = import ./polybar-themes   { inherit pkgs theme; };
 in
 {
+  home.packages = [
+    pkgs.nerd-fonts.iosevka
+    pkgs.nerd-fonts.symbols-only
+  ];
+
+  home.file.".config/fontconfig/conf.d/99-feather.conf".text = ''
+    <?xml version="1.0"?>
+    <!DOCTYPE fontconfig SYSTEM "fonts.dtd">
+    <fontconfig>
+      <dir>${featherFont}/share/fonts/truetype</dir>
+    </fontconfig>
+  '';
+
   home.file.".config/polybar" = {
     source = polybarTheme;
     recursive = true;
   };
 
   home.file.".local/bin/polybar-reload" = {
-    source = pkgs.replaceVars ./polybar-reload {
-      python3 = "${pkgs.python3.withPackages (ps: [ ps.xlib ])}/bin/python3";
-    };
+    source = "${polybarReload}/bin/polybar-reload";
     executable = true;
   };
 
@@ -35,6 +35,7 @@ in
     enable = true;
     package = pkgs.polybarFull;
     script = ''
+      ${pkgs.fontconfig}/bin/fc-cache -f
       $HOME/.config/polybar/launch.sh --${theme} &
       $HOME/.local/bin/polybar-reload &
     '';
