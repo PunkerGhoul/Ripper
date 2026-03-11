@@ -7,5 +7,6 @@
     (import ./polybar { inherit config pkgs; })
     (import ./dunst { inherit config pkgs; })
     (import ./picom { inherit pkgs; })
+    (import ./audio { inherit pkgs; })
   ];
 }
