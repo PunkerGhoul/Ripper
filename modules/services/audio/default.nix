@@ -24,7 +24,7 @@ let
         ${pkgs.pipewire}/bin/pw-cli enum-params "$dev_id" EnumProfile 2>/dev/null \
           | ${pkgs.gawk}/bin/awk '
               /Spa:Pod:Object:Param:Profile:index/ {
-                match($0, /Int ([0-9]+)/, m); idx = m[1]
+                getline; match($0, /Int ([0-9]+)/, m); idx = m[1]
               }
               /Spa:Pod:Object:Param:Profile:name/ && /output:analog-stereo/ {
                 print idx; exit
