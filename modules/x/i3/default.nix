@@ -72,6 +72,20 @@ let
     [ "{{i3lockBin}}" ]
     [ "${i3lock-color}/bin" ]
     (builtins.readFile ./scripts/lock);
+  fastAutostart = pkgs.writeShellScript "ripper-i3-autostart" ''
+    (
+      [ -x /usr/lib/policykit-1-gnome/polkit-gnome-authentication-agent-1 ] \
+        && /usr/lib/policykit-1-gnome/polkit-gnome-authentication-agent-1 &
+
+      ${pkgs.feh}/bin/feh --bg-center --geometry 1920x1080 "$HOME/Pictures/Wallpapers/cyberpunk.jpg" &
+      "$HOME/.config/polybar/launch.sh" --cuts &
+      "$HOME/.local/bin/polybar-reload" &
+      ${pkgs.dunst}/bin/dunst -config "$HOME/.config/dunst/dunstrc" &
+      command -v flameshot >/dev/null 2>&1 && flameshot &
+      ${pkgs.numlockx}/bin/numlockx on &
+      ${pkgs.networkmanagerapplet}/bin/nm-applet &
+    ) >/tmp/ripper-i3-autostart.log 2>&1 &
+  '';
 in {
 
   home.file = {
@@ -98,7 +112,7 @@ in {
     config = {
       modifier = "Mod4";
       bars = [];
-      terminal = "kitty";
+      terminal = "${config.programs.kitty.package}/bin/kitty";
       fonts = {
         names = [ "pango" ];
         style = "monospace";
@@ -117,61 +131,15 @@ in {
         outer = -8;
       };
       startup = [
-        # Start XDG autostart .desktop files using dex. See also
-        # https://wiki.archlinux.org/index.php/XDG_Autostart
         {
-          command = "${pkgs.dex}/bin/dex --autostart --environment i3";
-          notification = false;
-        }
-        # Polkit
-        {
-          command = "/usr/lib/policykit-1-gnome/polkit-gnome-authentication-agent-1";
-          notification = false;
-        }
-        # NetworkManager is the most popular way to manage wireless networks on Linux,
-        # and nm-applet is a desktop environment-independent system tray GUI for it.
-        {
-          command = "${pkgs.networkmanagerapplet}/bin/nm-applet";
-          notification = false;
-        }
-        # Display Wallpaper
-        {
-          command = "${pkgs.feh}/bin/feh --bg-center --geometry 1920x1080 $HOME/Pictures/Wallpapers/cyberpunk.jpg";
-          always = true;
-        }
-        # Polybar
-        {
-          command = "$HOME/.config/polybar/launch.sh --cuts";
-          notification = false;
-          always = true;
-        }
-        {
-          command = "$HOME/.local/bin/polybar-reload";
-          notification = false;
-          always = true;
-        }
-        # Dunst
-        {
-          command = "dunst -config $HOME/.config/dunst/dunstrc";
-          notification = false;
-          always = true;
-        }
-        # FlameShot
-        {
-          command = "flameshot";
-          notification = false;
-          always = true;
-        }
-        # Enable NumLock on Boot
-        {
-          command = "${pkgs.numlockx}/bin/numlockx on";
+          command = toString fastAutostart;
           notification = false;
           always = true;
         }
       ];
       keybindings = lib.mkOptionDefault {
         # Menu
-        "${modifier}+d" = ''exec "env PATH=$PATH:${config.home.homeDirectory}/.local/bin ${pkgs.rofi}/bin/rofi -modi run,run -show run"'';
+        "${modifier}+d" = ''exec "env PATH=$PATH:${config.home.homeDirectory}/.local/bin ${pkgs.rofi}/bin/rofi -modi drun,run -show drun"'';
         # LockScreen
         "${modifier}+x" = "exec $HOME/.config/i3/scripts/lock";
         # Print Screen with FlameShot
