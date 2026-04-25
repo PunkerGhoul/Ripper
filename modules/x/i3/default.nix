@@ -96,67 +96,6 @@ let
       export XDG_RUNTIME_DIR="$runtime_dir"
     fi
 
-    pid_file="$runtime_dir/ripper-session.pid"
-    wm_pid_file="$runtime_dir/ripper-session.i3.pid"
-    children_file="$runtime_dir/ripper-session.children"
-    user_name="''${USER:-}"
-    : > "$children_file"
-    echo "$$" > "$pid_file"
-
-    add_child() {
-      printf '%s\n' "$1" >> "$children_file"
-    }
-
-    cleaned=0
-    cleanup() {
-      [ "$cleaned" = 1 ] && return
-      cleaned=1
-      trap - EXIT INT TERM HUP
-
-      ${pkgs.psmisc}/bin/killall -q polybar 2>/dev/null || true
-      if [ -n "$user_name" ]; then
-        ${pkgs.procps}/bin/pkill -u "$user_name" -x picom 2>/dev/null || true
-        ${pkgs.procps}/bin/pkill -u "$user_name" -x polybar-reload 2>/dev/null || true
-        ${pkgs.procps}/bin/pkill -u "$user_name" -x dunst 2>/dev/null || true
-        ${pkgs.procps}/bin/pkill -u "$user_name" -x nm-applet 2>/dev/null || true
-        ${pkgs.procps}/bin/pkill -u "$user_name" -x flameshot 2>/dev/null || true
-        ${pkgs.procps}/bin/pkill -u "$user_name" -x vmware-user 2>/dev/null || true
-      fi
-
-      if [ -n "''${wm_pid:-}" ] && kill -0 "$wm_pid" 2>/dev/null; then
-        ${pkgs.i3}/bin/i3-msg exit >/dev/null 2>&1 || true
-        for _ in 1 2 3 4 5 6 7 8 9 10; do
-          kill -0 "$wm_pid" 2>/dev/null || break
-          ${pkgs.coreutils}/bin/sleep 0.05
-        done
-        kill -TERM "$wm_pid" 2>/dev/null || true
-        for _ in 1 2 3 4 5 6 7 8 9 10; do
-          kill -0 "$wm_pid" 2>/dev/null || break
-          ${pkgs.coreutils}/bin/sleep 0.05
-        done
-        kill -KILL "$wm_pid" 2>/dev/null || true
-      fi
-
-      if [ -r "$children_file" ]; then
-        while IFS= read -r child_pid; do
-          case "$child_pid" in
-            ""|*[!0-9]*) continue ;;
-          esac
-          kill "$child_pid" 2>/dev/null || true
-        done < "$children_file"
-      fi
-
-      rm -f "$pid_file" "$wm_pid_file" "$children_file"
-    }
-
-    terminate() {
-      cleanup
-      exit 0
-    }
-
-    trap terminate INT TERM HUP
-    trap cleanup EXIT
-
     export XDG_CURRENT_DESKTOP=i3
     export XDG_SESSION_DESKTOP=ripper
     export DESKTOP_SESSION=ripper
@@ -166,34 +105,28 @@ let
         DISPLAY XAUTHORITY XDG_CURRENT_DESKTOP XDG_SESSION_DESKTOP DESKTOP_SESSION >/dev/null 2>&1 || true
     fi
 
-    ${pkgs.i3}/bin/i3 -c "$HOME/.config/i3/config" &
-    wm_pid="$!"
-    echo "$wm_pid" > "$wm_pid_file"
+    if ${pkgs.i3}/bin/i3-msg -t get_version >/dev/null 2>&1; then
+      echo "Ripper session: refusing to start a second i3 instance on DISPLAY=''${DISPLAY:-unset}" >&2
+      exit 1
+    fi
 
     ${pkgs.feh}/bin/feh --bg-center --geometry 1920x1080 "$HOME/Pictures/Wallpapers/cyberpunk.jpg" >/dev/null 2>&1 || true
 
-    (
-      if [ -x "$HOME/.local/bin/ripper-picom-start" ]; then
-        "$HOME/.local/bin/ripper-picom-start" >/dev/null 2>&1 &
-      fi
+    if [ -x "$HOME/.local/bin/ripper-picom-start" ]; then
+      "$HOME/.local/bin/ripper-picom-start" >/dev/null 2>&1 &
+    fi
 
-      [ -x /usr/lib/policykit-1-gnome/polkit-gnome-authentication-agent-1 ] \
-        && /usr/lib/policykit-1-gnome/polkit-gnome-authentication-agent-1 >/dev/null 2>&1 &
+    [ -x /usr/lib/policykit-1-gnome/polkit-gnome-authentication-agent-1 ] \
+      && /usr/lib/policykit-1-gnome/polkit-gnome-authentication-agent-1 >/dev/null 2>&1 &
 
-      [ -x /usr/bin/vmware-user ] && /usr/bin/vmware-user >/dev/null 2>&1 &
+    [ -x /usr/bin/vmware-user ] && /usr/bin/vmware-user >/dev/null 2>&1 &
 
-      if [ -x "$HOME/.local/bin/polybar-reload" ]; then
-        "$HOME/.local/bin/polybar-reload" >/dev/null 2>&1 &
-      fi
+    ${pkgs.dunst}/bin/dunst -config "$HOME/.config/dunst/dunstrc" >/dev/null 2>&1 &
+    command -v flameshot >/dev/null 2>&1 && flameshot >/dev/null 2>&1 &
+    ${pkgs.numlockx}/bin/numlockx on >/dev/null 2>&1 || true
+    ${pkgs.networkmanagerapplet}/bin/nm-applet >/dev/null 2>&1 &
 
-      ${pkgs.dunst}/bin/dunst -config "$HOME/.config/dunst/dunstrc" >/dev/null 2>&1 &
-      command -v flameshot >/dev/null 2>&1 && flameshot >/dev/null 2>&1 &
-      ${pkgs.numlockx}/bin/numlockx on >/dev/null 2>&1 || true
-      ${pkgs.networkmanagerapplet}/bin/nm-applet >/dev/null 2>&1 &
-    ) &
-    add_child "$!"
-
-    wait "$wm_pid"
+    exec ${pkgs.i3}/bin/i3 -c "$HOME/.config/i3/config"
   '';
 in {
 

@@ -1,4 +1,4 @@
-{ config, pkgs, logoutScript, nixGLCommand, ... }:
+{ config, pkgs, logoutScript, ... }:
 
 {
   imports = [
@@ -6,6 +6,6 @@
     (import ./gpg-agent { inherit pkgs; })
     (import ./polybar { inherit config pkgs logoutScript; })
     (import ./dunst { inherit config pkgs; })
-    (import ./picom { inherit pkgs nixGLCommand; })
+    (import ./picom { inherit pkgs; })
   ];
 }

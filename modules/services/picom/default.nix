@@ -1,7 +1,8 @@
-{ pkgs, nixGLCommand, ... }:
+{ pkgs, ... }:
 
 {
   home.file.".config/picom/picom.conf".text = ''
+    backend = "xrender";
     fading = false;
     fade-delta = 10;
     fade-in-step = 0.028;
@@ -23,13 +24,13 @@
       "window_type = 'desktop'",
       "class_g = 'Polybar'"
     ];
-    use-damage = true;
+    use-damage = false;
     unredir-if-possible = false;
     shadow = true;
-    shadow-radius = 8;
-    shadow-offset-x = -3;
-    shadow-offset-y = -3;
-    shadow-opacity = 0.25;
+    shadow-radius = 5;
+    shadow-offset-x = -2;
+    shadow-offset-y = -2;
+    shadow-opacity = 0.18;
     shadow-exclude = [
       "window_type = 'dock'",
       "window_type = 'desktop'",
@@ -53,23 +54,7 @@
 
       ${pkgs.procps}/bin/pkill -u "''${USER:-$(${pkgs.coreutils}/bin/id -un)}" -x picom 2>/dev/null || true
 
-      start_glx() {
-        ${nixGLCommand} ${pkgs.picom}/bin/picom --backend glx --config "$HOME/.config/picom/picom.conf" >>"$log" 2>&1 &
-        picom_pid="$!"
-        for _ in 1 2 3 4 5 6 7 8 9 10; do
-          ${pkgs.coreutils}/bin/sleep 0.05
-          if ! kill -0 "$picom_pid" 2>/dev/null; then
-            wait "$picom_pid" 2>/dev/null || true
-            return 1
-          fi
-        done
-
-        wait "$picom_pid"
-        exit "$?"
-      }
-
-      start_glx || true
-      exec ${pkgs.picom}/bin/picom --backend xrender --config "$HOME/.config/picom/picom.conf" >>"$log" 2>&1
+      exec ${pkgs.picom}/bin/picom --config "$HOME/.config/picom/picom.conf" >>"$log" 2>&1
     '';
     executable = true;
   };
