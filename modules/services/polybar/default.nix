@@ -3,9 +3,21 @@
 let
   theme = "cuts";
 
+  polybarPackage = pkgs.polybar.override {
+    alsaSupport = true;
+    githubSupport = true;
+    mpdSupport = true;
+    pulseSupport = true;
+    iwSupport = false;
+    nlSupport = true;
+    # The active themes do not use internal/i3. Keeping this off avoids the
+    # current polybarFull/jsoncpp link regression in nixpkgs-unstable.
+    i3Support = false;
+  };
+
   featherFont   = import ./feather-font.nix { inherit pkgs; };
-  polybarReload = import ./polybar-reload   { inherit pkgs; };
-  polybarTheme  = import ./polybar-themes   { inherit pkgs theme; };
+  polybarReload = import ./polybar-reload   { inherit pkgs polybarPackage; };
+  polybarTheme  = import ./polybar-themes   { inherit pkgs theme polybarPackage; };
 in
 {
   home.packages = [
@@ -33,7 +45,7 @@ in
 
   services.polybar = {
     enable = true;
-    package = pkgs.polybarFull;
+    package = polybarPackage;
     script = ''
       ${pkgs.fontconfig}/bin/fc-cache -f
       $HOME/.config/polybar/launch.sh --${theme} &

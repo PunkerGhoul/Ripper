@@ -1,4 +1,4 @@
-{ pkgs, theme }:
+{ pkgs, theme, polybarPackage }:
 
 let
   # Colour overrides – format: "#AARRGGBB" or "#RRGGBB".
@@ -34,8 +34,8 @@ pkgs.runCommand "polybar-theme-${theme}" { } ''
     sed -i ${colorSedArgs} $out/${theme}/colors.ini
   ''}
   find $out -name "*.sh" | xargs -r sed -i \
-    -e 's|polybar-msg |${pkgs.polybarFull}/bin/polybar-msg |g' \
-    -e 's|polybar -q|${pkgs.polybarFull}/bin/polybar -q|g' \
+    -e 's|polybar-msg |${polybarPackage}/bin/polybar-msg |g' \
+    -e 's|polybar -q|${polybarPackage}/bin/polybar -q|g' \
     -e 's|killall -q polybar|${pkgs.psmisc}/bin/killall -q polybar|g' \
     -e 's|pgrep -u|${pkgs.procps}/bin/pgrep -u|g' \
     -e 's|rofi -|${pkgs.rofi}/bin/rofi -|g' \
