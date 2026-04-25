@@ -221,8 +221,16 @@ func ensureLoginShell(cfg installConfig, apply bool) error {
 	if err := ensureShellListed(zshPath); err != nil {
 		return err
 	}
+	sudoPath, err := systemCommand("sudo", "/usr/bin/sudo", "/bin/sudo")
+	if err != nil {
+		return err
+	}
+	chshPath, err := systemCommand("chsh", "/usr/bin/chsh", "/bin/chsh")
+	if err != nil {
+		return err
+	}
 	fmt.Println("Changing login shell to", zshPath)
-	cmd := exec.Command("sudo", "chsh", "-s", zshPath, cfg.Username)
+	cmd := exec.Command(sudoPath, chshPath, "-s", zshPath, cfg.Username)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
@@ -251,8 +259,16 @@ func ensureI3lockPam(cfg installConfig, apply bool) error {
 		fmt.Println("PAM service would be written:", pamPath)
 		return nil
 	}
+	sudoPath, err := systemCommand("sudo", "/usr/bin/sudo", "/bin/sudo")
+	if err != nil {
+		return err
+	}
+	shPath, err := systemCommand("sh", "/bin/sh", "/usr/bin/sh")
+	if err != nil {
+		return err
+	}
 	fmt.Println("Writing PAM service:", pamPath)
-	cmd := exec.Command("sudo", "sh", "-c", "umask 022 && cat > /etc/pam.d/i3lock")
+	cmd := exec.Command(sudoPath, shPath, "-c", "umask 022 && cat > /etc/pam.d/i3lock")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = strings.NewReader(expected)
@@ -313,7 +329,15 @@ func ensureShellListed(shellPath string) error {
 		}
 	}
 	fmt.Println("Adding", shellPath, "to /etc/shells")
-	cmd := exec.Command("sudo", "sh", "-c", "printf '%s\n' \"$1\" >> /etc/shells", "sh", shellPath)
+	sudoPath, err := systemCommand("sudo", "/usr/bin/sudo", "/bin/sudo")
+	if err != nil {
+		return err
+	}
+	shPath, err := systemCommand("sh", "/bin/sh", "/usr/bin/sh")
+	if err != nil {
+		return err
+	}
+	cmd := exec.Command(sudoPath, shPath, "-c", "printf '%s\n' \"$1\" >> /etc/shells", "sh", shellPath)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
@@ -321,6 +345,18 @@ func ensureShellListed(shellPath string) error {
 		return fmt.Errorf("append /etc/shells failed: %w", err)
 	}
 	return nil
+}
+
+func systemCommand(name string, paths ...string) (string, error) {
+	for _, path := range paths {
+		if _, err := os.Stat(path); err == nil {
+			return path, nil
+		}
+	}
+	if path, err := exec.LookPath(name); err == nil && !strings.HasPrefix(path, "/nix/store/") {
+		return path, nil
+	}
+	return "", fmt.Errorf("missing host %s; refusing to use a Nix-provided privileged command", name)
 }
 
 func repoRoot() (string, error) {
