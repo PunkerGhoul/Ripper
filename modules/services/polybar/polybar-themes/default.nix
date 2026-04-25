@@ -30,6 +30,9 @@ pkgs.runCommand "polybar-theme-${theme}" { } ''
   find $out -name "*.ini" | xargs -r sed -i '1s/^\xEF\xBB\xBF//'
   # Use pulseaudio module (works with pipewire's PA compatibility layer)
   sed -i 's|\bvolume\b|pulseaudio|g' $out/${theme}/config.ini
+  # The upstream theme pins a machine-specific sink, which makes the displayed
+  # percentage stale or wrong on VMs. Let polybar follow the default sink.
+  sed -i '/^sink = /d' $out/${theme}/modules.ini
   ${pkgs.lib.optionalString (pkgs.lib.any (v: v != "") (pkgs.lib.attrValues colors)) ''
     sed -i ${colorSedArgs} $out/${theme}/colors.ini
   ''}

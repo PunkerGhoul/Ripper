@@ -78,7 +78,7 @@ let
         && /usr/lib/policykit-1-gnome/polkit-gnome-authentication-agent-1 &
 
       ${pkgs.feh}/bin/feh --bg-center --geometry 1920x1080 "$HOME/Pictures/Wallpapers/cyberpunk.jpg" &
-      "$HOME/.config/polybar/launch.sh" --cuts &
+      "$HOME/.local/bin/ripper-polybar-start" &
       "$HOME/.local/bin/polybar-reload" &
       ${pkgs.dunst}/bin/dunst -config "$HOME/.config/dunst/dunstrc" &
       command -v flameshot >/dev/null 2>&1 && flameshot &
@@ -140,6 +140,10 @@ in {
       keybindings = lib.mkOptionDefault {
         # Menu
         "${modifier}+d" = ''exec "env PATH=${config.home.homeDirectory}/.local/bin:${config.home.homeDirectory}/.nix-profile/bin:${config.home.homeDirectory}/.local/state/nix/profiles/profile/bin:$PATH XDG_DATA_DIRS=${config.home.homeDirectory}/.local/share:${config.home.homeDirectory}/.nix-profile/share:${config.home.homeDirectory}/.local/state/nix/profiles/profile/share:$XDG_DATA_DIRS ${pkgs.rofi}/bin/rofi -modi drun,run -show drun"'';
+        "XF86AudioRaiseVolume" = "exec --no-startup-id ${pkgs.pamixer}/bin/pamixer --allow-boost --increase 5";
+        "XF86AudioLowerVolume" = "exec --no-startup-id ${pkgs.pamixer}/bin/pamixer --decrease 5";
+        "XF86AudioMute" = "exec --no-startup-id ${pkgs.pamixer}/bin/pamixer --toggle-mute";
+        "XF86AudioMicMute" = "exec --no-startup-id ${pkgs.pamixer}/bin/pamixer --default-source --toggle-mute";
         # LockScreen
         "${modifier}+x" = "exec $HOME/.config/i3/scripts/lock";
         # Print Screen with FlameShot

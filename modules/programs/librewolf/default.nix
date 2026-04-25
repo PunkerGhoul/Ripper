@@ -53,6 +53,31 @@ let
   else [];
 in
   {
+  xdg.enable = true;
+  xdg.desktopEntries = {
+    librewolf-personal = {
+      name = "LibreWolf Personal";
+      genericName = "Web Browser";
+      comment = "LibreWolf with the Personal profile";
+      exec = "${pkgs.librewolf}/bin/librewolf -P Personal";
+      icon = "librewolf";
+      terminal = false;
+      categories = [ "Network" "WebBrowser" ];
+      mimeType = [ "text/html" "text/xml" "application/xhtml+xml" "x-scheme-handler/http" "x-scheme-handler/https" ];
+    };
+
+    librewolf-pentesting = {
+      name = "LibreWolf Pentesting";
+      genericName = "Web Browser";
+      comment = "LibreWolf with the Pentesting profile";
+      exec = "${pkgs.librewolf}/bin/librewolf -P Pentesting";
+      icon = "librewolf";
+      terminal = false;
+      categories = [ "Network" "WebBrowser" "Security" ];
+      mimeType = [ "text/html" "text/xml" "application/xhtml+xml" "x-scheme-handler/http" "x-scheme-handler/https" ];
+    };
+  };
+
   programs.librewolf = {
     enable = true;
 

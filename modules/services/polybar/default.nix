@@ -18,6 +18,11 @@ let
   featherFont   = import ./feather-font.nix { inherit pkgs; };
   polybarReload = import ./polybar-reload   { inherit pkgs polybarPackage; };
   polybarTheme  = import ./polybar-themes   { inherit pkgs theme polybarPackage; };
+  polybarStart = pkgs.writeShellScript "ripper-polybar-start" ''
+    ${pkgs.psmisc}/bin/killall -q polybar 2>/dev/null || true
+    ${polybarPackage}/bin/polybar -q top -c "$HOME/.config/polybar/${theme}/config.ini" &
+    ${polybarPackage}/bin/polybar -q bottom -c "$HOME/.config/polybar/${theme}/config.ini" &
+  '';
 in
 {
   home.packages = [
@@ -43,13 +48,8 @@ in
     executable = true;
   };
 
-  services.polybar = {
-    enable = true;
-    package = polybarPackage;
-    script = ''
-      ${pkgs.fontconfig}/bin/fc-cache -f
-      $HOME/.config/polybar/launch.sh --${theme} &
-      $HOME/.local/bin/polybar-reload &
-    '';
+  home.file.".local/bin/ripper-polybar-start" = {
+    source = polybarStart;
+    executable = true;
   };
 }
