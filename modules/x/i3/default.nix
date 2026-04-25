@@ -272,6 +272,5 @@ in {
         "4" = [{ class = "obsidian"; }];
       };
     };
-    extraConfig = builtins.readFile ./config;
   };
 }
