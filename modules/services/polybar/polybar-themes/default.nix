@@ -1,4 +1,4 @@
-{ pkgs, theme, polybarPackage }:
+{ pkgs, theme, polybarPackage, logoutScript }:
 
 let
   # Colour overrides – format: "#AARRGGBB" or "#RRGGBB".
@@ -44,5 +44,10 @@ pkgs.runCommand "polybar-theme-${theme}" { } ''
     -e 's|rofi -|${pkgs.rofi}/bin/rofi -|g' \
     -e 's|notify-send |${pkgs.libnotify}/bin/notify-send |g' \
     -e 's|ifconfig|${pkgs.net-tools}/bin/ifconfig|g' \
+    -e 's|ans=\$(confirm_exit &)|ans=$(confirm_exit)|g' \
+    -e 's|systemctl |/usr/bin/systemctl |g' \
+    -e 's|$HOME/.config/scripts/lock|$HOME/.config/i3/scripts/lock|g' \
+    -e 's@"\$DESKTOP_SESSION" == "i3"@"\$DESKTOP_SESSION" == "i3" || "\$DESKTOP_SESSION" == "ripper"@g' \
+    -e 's|i3-msg exit|${logoutScript}|g' \
     -e 's|i3-msg |${pkgs.i3}/bin/i3-msg |g'
 ''

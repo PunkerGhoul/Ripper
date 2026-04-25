@@ -1,4 +1,4 @@
-{ config, pkgs, lib, ... }:
+{ config, pkgs, lib, logoutScript, ... }:
 
 {
   home.activation.install-vmware-tools = lib.hm.dag.entryAfter [ "writeBoundary" ]
@@ -70,6 +70,6 @@
   };
 
   imports = [
-    (import ./i3 { inherit config pkgs lib; })
+    (import ./i3 { inherit config pkgs lib logoutScript; })
   ];
 }

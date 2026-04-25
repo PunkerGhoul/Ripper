@@ -1,4 +1,4 @@
-{ config, pkgs, ... }:
+{ config, pkgs, logoutScript ? null, ... }:
 
 let
   theme = "cuts";
@@ -17,7 +17,14 @@ let
 
   featherFont   = import ./feather-font.nix { inherit pkgs; };
   polybarReload = import ./polybar-reload   { inherit pkgs polybarPackage; };
-  polybarTheme  = import ./polybar-themes   { inherit pkgs theme polybarPackage; };
+  resolvedLogoutScript =
+    if logoutScript != null then
+      logoutScript
+    else
+      pkgs.writeShellScript "ripper-logout-fallback" ''
+        ${pkgs.i3}/bin/i3-msg exit >/dev/null 2>&1 || true
+      '';
+  polybarTheme  = import ./polybar-themes   { inherit pkgs theme polybarPackage; logoutScript = resolvedLogoutScript; };
   polybarStart = pkgs.writeShellScript "ripper-polybar-start" ''
     ${pkgs.psmisc}/bin/killall -q polybar 2>/dev/null || true
     ${polybarPackage}/bin/polybar -q top -c "$HOME/.config/polybar/${theme}/config.ini" &

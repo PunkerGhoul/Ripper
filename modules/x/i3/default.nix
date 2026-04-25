@@ -1,4 +1,4 @@
-{ config, pkgs, lib, ...}:
+{ config, pkgs, lib, logoutScript, ...}:
 
 let
   modifier = config.xsession.windowManager.i3.config.modifier;
@@ -161,7 +161,7 @@ in {
         "${modifier}+Shift+r" = "restart";
         # Exit i3 (logs you out of your X session)
         "${modifier}+Shift+e" = ''
-          exec "${pkgs.i3}/bin/i3-nagbar -t warning -m 'You pressed the exit shortcut. Do you really want to exit i3? This will end your X session.' -B 'Yes, exit i3' 'i3-msg exit'"'';
+          exec ${pkgs.i3}/bin/i3-nagbar -t warning -m 'Exit this i3 session and return to SDDM?' -B 'Yes, logout' '${logoutScript}' '';
         # kill Focused Window
         "${modifier}+Shift+q" = "kill";
         # Workspaces
