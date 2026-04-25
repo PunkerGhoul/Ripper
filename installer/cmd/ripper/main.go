@@ -380,9 +380,14 @@ DesktopNames=i3;Ripper
 }
 
 func ensureSddmConfig(cfg installConfig, apply bool) error {
-	const configPath = "/etc/sddm.conf.d/10-ripper.conf"
+	const configPath = "/etc/sddm.conf.d/99-ripper.conf"
 	config := fmt.Sprintf(`[General]
 DisplayServer=x11
+
+[Autologin]
+Relogin=false
+Session=
+User=
 
 [Users]
 MinimumUid=1000
@@ -390,7 +395,7 @@ MaximumUid=29999
 HideShells=/usr/sbin/nologin,/usr/bin/nologin,/sbin/nologin,/bin/false
 HideUsers=%s
 RememberLastUser=false
-RememberLastSession=true
+RememberLastSession=false
 `, strings.Join(sddmHiddenUsers(cfg.Username), ","))
 
 	if fileHasContent(configPath, config) {

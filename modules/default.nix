@@ -5,6 +5,7 @@ let
     ${pkgs.psmisc}/bin/killall -q polybar 2>/dev/null || true
 
     user_name="''${USER:-$(${pkgs.coreutils}/bin/id -un 2>/dev/null || true)}"
+    session_id="''${XDG_SESSION_ID:-}"
     if [ -n "$user_name" ]; then
       ${pkgs.procps}/bin/pkill -u "$user_name" -x picom 2>/dev/null || true
       ${pkgs.procps}/bin/pkill -u "$user_name" -x polybar-reload 2>/dev/null || true
@@ -14,6 +15,18 @@ let
     fi
 
     ${pkgs.i3}/bin/i3-msg exit >/dev/null 2>&1 || true
+
+    loginctl_bin=
+    for candidate in /usr/bin/loginctl /bin/loginctl ${pkgs.systemd}/bin/loginctl; do
+      if [ -x "$candidate" ]; then
+        loginctl_bin="$candidate"
+        break
+      fi
+    done
+
+    if [ -n "$session_id" ] && [ -n "$loginctl_bin" ]; then
+      "$loginctl_bin" terminate-session "$session_id" >/dev/null 2>&1 || true
+    fi
 
     if [ -n "$user_name" ]; then
       for _ in 1 2 3 4 5 6 7 8; do
