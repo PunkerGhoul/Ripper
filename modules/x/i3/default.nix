@@ -96,6 +96,12 @@ let
       export XDG_RUNTIME_DIR="$runtime_dir"
     fi
 
+    user_name="''${USER:-$(${pkgs.coreutils}/bin/id -un 2>/dev/null || true)}"
+    if [ -n "$user_name" ] && ${pkgs.procps}/bin/pgrep -u "$user_name" -x i3 >/dev/null 2>&1; then
+      echo "Ripper session: refusing to start while another i3 process exists for $user_name" >&2
+      exit 1
+    fi
+
     export XDG_CURRENT_DESKTOP=i3
     export XDG_SESSION_DESKTOP=ripper
     export DESKTOP_SESSION=ripper

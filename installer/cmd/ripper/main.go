@@ -350,28 +350,12 @@ if command -v dbus-update-activation-environment >/dev/null 2>&1; then
   dbus-update-activation-environment --systemd DISPLAY XAUTHORITY XDG_CURRENT_DESKTOP XDG_SESSION_DESKTOP DESKTOP_SESSION
 fi
 
-if [ -x "$HOME/.local/bin/ripper-session-start" ]; then
-  exec "$HOME/.local/bin/ripper-session-start"
+if [ ! -x "$HOME/.local/bin/ripper-session-start" ]; then
+  echo "Ripper session: missing Home Manager launcher: $HOME/.local/bin/ripper-session-start" >&2
+  exit 127
 fi
 
-if command -v i3 >/dev/null 2>&1; then
-  exec i3
-fi
-
-if [ -x "$HOME/.nix-profile/bin/i3" ]; then
-  exec "$HOME/.nix-profile/bin/i3"
-fi
-
-if [ -x "$HOME/.local/state/nix/profiles/profile/bin/i3" ]; then
-  exec "$HOME/.local/state/nix/profiles/profile/bin/i3"
-fi
-
-if [ -r "$HOME/.xsession" ]; then
-  exec /bin/sh "$HOME/.xsession"
-fi
-
-echo "Ripper session: i3 not found in Home Manager profile" >&2
-exit 127
+exec "$HOME/.local/bin/ripper-session-start"
 `
 	desktop := `[Desktop Entry]
 Name=Ripper
