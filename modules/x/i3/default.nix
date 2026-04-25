@@ -153,23 +153,32 @@ let
         DISPLAY XAUTHORITY XDG_CURRENT_DESKTOP XDG_SESSION_DESKTOP DESKTOP_SESSION >/dev/null 2>&1 || true
     fi
 
-    ${pkgs.feh}/bin/feh --bg-center --geometry 1920x1080 "$HOME/Pictures/Wallpapers/cyberpunk.jpg" >/dev/null 2>&1 || true
-    if [ -x "$HOME/.local/bin/ripper-polybar-start" ]; then
-      "$HOME/.local/bin/ripper-polybar-start" >/dev/null 2>&1 || true
-    fi
-
     ${pkgs.i3}/bin/i3 -c "$HOME/.config/i3/config" &
     wm_pid="$!"
+
+    (
+      for _ in 1 2 3 4 5 6 7 8 9 10; do
+        ${pkgs.i3}/bin/i3-msg -t get_workspaces >/dev/null 2>&1 && break
+        ${pkgs.coreutils}/bin/sleep 0.05
+      done
+
+      ${pkgs.feh}/bin/feh --bg-center --geometry 1920x1080 "$HOME/Pictures/Wallpapers/cyberpunk.jpg" >/dev/null 2>&1 || true
+
+      if [ -x "$HOME/.local/bin/ripper-polybar-start" ]; then
+        "$HOME/.local/bin/ripper-polybar-start" >/dev/null 2>&1 || true
+      fi
+
+      if [ -x "$HOME/.local/bin/polybar-reload" ]; then
+        "$HOME/.local/bin/polybar-reload" >/dev/null 2>&1 &
+      fi
+    ) &
+    add_child "$!"
 
     (
       [ -x /usr/lib/policykit-1-gnome/polkit-gnome-authentication-agent-1 ] \
         && /usr/lib/policykit-1-gnome/polkit-gnome-authentication-agent-1 >/dev/null 2>&1 &
 
       [ -x /usr/bin/vmware-user ] && /usr/bin/vmware-user >/dev/null 2>&1 &
-
-      if [ -x "$HOME/.local/bin/polybar-reload" ]; then
-        "$HOME/.local/bin/polybar-reload" >/dev/null 2>&1 &
-      fi
 
       ${pkgs.dunst}/bin/dunst -config "$HOME/.config/dunst/dunstrc" >/dev/null 2>&1 &
       command -v flameshot >/dev/null 2>&1 && flameshot >/dev/null 2>&1 &

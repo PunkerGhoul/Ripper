@@ -26,9 +26,12 @@ let
       '';
   polybarTheme  = import ./polybar-themes   { inherit pkgs theme polybarPackage; logoutScript = resolvedLogoutScript; };
   polybarStart = pkgs.writeShellScript "ripper-polybar-start" ''
+    config="$HOME/.config/polybar/${theme}/config.ini"
+    [ -r "$config" ] || exit 0
+
     ${pkgs.psmisc}/bin/killall -q polybar 2>/dev/null || true
-    ${polybarPackage}/bin/polybar -q top -c "$HOME/.config/polybar/${theme}/config.ini" &
-    ${polybarPackage}/bin/polybar -q bottom -c "$HOME/.config/polybar/${theme}/config.ini" &
+    ${polybarPackage}/bin/polybar -q top -c "$config" &
+    ${polybarPackage}/bin/polybar -q bottom -c "$config" &
   '';
 in
 {
