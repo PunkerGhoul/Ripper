@@ -45,13 +45,22 @@ func run(args []string) error {
 			return err
 		}
 		printDoctor(cfg)
-		return nil
+		if err := ensureI3lockPam(cfg, false); err != nil {
+			return err
+		}
+		return ensureLoginShell(cfg, false)
 	case "switch", "apply":
 		cfg, err := ensureInstallConfig()
 		if err != nil {
 			return err
 		}
 		printDoctor(cfg)
+		if err := ensureLoginShell(cfg, true); err != nil {
+			return err
+		}
+		if err := ensureI3lockPam(cfg, true); err != nil {
+			return err
+		}
 		return runHomeManager()
 	default:
 		return fmt.Errorf("unknown command %q; expected init, doctor, or switch", command)
@@ -190,6 +199,128 @@ func runHomeManager() error {
 	cmd.Stdin = os.Stdin
 	cmd.Env = os.Environ()
 	return cmd.Run()
+}
+
+func ensureLoginShell(cfg installConfig, apply bool) error {
+	zshPath, err := exec.LookPath("zsh")
+	if err != nil {
+		return errors.New("missing zsh in installer runtime")
+	}
+	currentShell, err := currentLoginShell(cfg.Username)
+	if err != nil {
+		return err
+	}
+	if currentShell == zshPath {
+		fmt.Println("Login shell already set to", zshPath)
+		return nil
+	}
+	if !apply {
+		fmt.Printf("Login shell would be changed from %s to %s\n", currentShell, zshPath)
+		return nil
+	}
+	if err := ensureShellListed(zshPath); err != nil {
+		return err
+	}
+	fmt.Println("Changing login shell to", zshPath)
+	cmd := exec.Command("sudo", "chsh", "-s", zshPath, cfg.Username)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Stdin = os.Stdin
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("chsh failed: %w", err)
+	}
+	return nil
+}
+
+func ensureI3lockPam(cfg installConfig, apply bool) error {
+	const pamPath = "/etc/pam.d/i3lock"
+	expected := pamConfig(cfg.Distro)
+	current, err := os.ReadFile(pamPath)
+	if err == nil && strings.TrimSpace(string(current)) == strings.TrimSpace(expected) {
+		fmt.Println("PAM service already configured:", pamPath)
+		return nil
+	}
+	if err == nil && len(current) > 0 && !strings.Contains(string(current), "Managed by Ripper") {
+		fmt.Println("PAM service exists and is not managed by Ripper:", pamPath)
+		return nil
+	}
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		return fmt.Errorf("read %s: %w", pamPath, err)
+	}
+	if !apply {
+		fmt.Println("PAM service would be written:", pamPath)
+		return nil
+	}
+	fmt.Println("Writing PAM service:", pamPath)
+	cmd := exec.Command("sudo", "sh", "-c", "umask 022 && cat > /etc/pam.d/i3lock")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Stdin = strings.NewReader(expected)
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("write %s failed: %w", pamPath, err)
+	}
+	return nil
+}
+
+func pamConfig(distro string) string {
+	if distro == "arch" {
+		return `# Managed by Ripper.
+auth include system-auth
+account include system-auth
+password include system-auth
+session include system-auth
+`
+	}
+	return `# Managed by Ripper.
+auth include common-auth
+account include common-account
+password include common-password
+session include common-session
+`
+}
+
+func currentLoginShell(username string) (string, error) {
+	if getent, err := exec.LookPath("getent"); err == nil {
+		output, err := exec.Command(getent, "passwd", username).Output()
+		if err == nil {
+			parts := strings.Split(strings.TrimSpace(string(output)), ":")
+			if len(parts) == 7 && parts[6] != "" {
+				return parts[6], nil
+			}
+		}
+	}
+	data, err := os.ReadFile("/etc/passwd")
+	if err != nil {
+		return "", fmt.Errorf("read /etc/passwd: %w", err)
+	}
+	for _, line := range strings.Split(string(data), "\n") {
+		parts := strings.Split(line, ":")
+		if len(parts) == 7 && parts[0] == username {
+			return parts[6], nil
+		}
+	}
+	return "", fmt.Errorf("could not determine login shell for %s", username)
+}
+
+func ensureShellListed(shellPath string) error {
+	data, err := os.ReadFile("/etc/shells")
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		return fmt.Errorf("read /etc/shells: %w", err)
+	}
+	for _, line := range strings.Split(string(data), "\n") {
+		if strings.TrimSpace(line) == shellPath {
+			return nil
+		}
+	}
+	fmt.Println("Adding", shellPath, "to /etc/shells")
+	cmd := exec.Command("sudo", "sh", "-c", "printf '%s\n' \"$1\" >> /etc/shells", "sh", shellPath)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Stdin = os.Stdin
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("append /etc/shells failed: %w", err)
+	}
+	return nil
 }
 
 func repoRoot() (string, error) {

@@ -119,6 +119,9 @@
               home-manager.packages.${system}.home-manager
               pkgs.coreutils
               pkgs.nix
+              pkgs.shadow
+              pkgs.sudo
+              pkgs.zsh
             ];
             text = ''
               set -euo pipefail

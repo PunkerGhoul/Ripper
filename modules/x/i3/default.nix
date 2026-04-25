@@ -2,6 +2,16 @@
 
 let
   modifier = config.xsession.windowManager.i3.config.modifier;
+  hostPamLibraryPath = pkgs.lib.concatStringsSep ":" [
+    "/usr/lib"
+    "/usr/lib64"
+    "/lib"
+    "/lib64"
+    "/usr/lib/x86_64-linux-gnu"
+    "/lib/x86_64-linux-gnu"
+    "/usr/lib/aarch64-linux-gnu"
+    "/lib/aarch64-linux-gnu"
+  ];
 
   i3lock-color = pkgs.stdenv.mkDerivation rec {
     pname = "i3lock-color";
@@ -53,7 +63,7 @@ let
       runHook preInstall
       install -Dm755 i3lock $out/bin/.i3lock-wrapped
       makeWrapper $out/bin/.i3lock-wrapped $out/bin/i3lock \
-        --prefix LD_LIBRARY_PATH : /usr/lib:/usr/lib/x86_64-linux-gnu:/lib/x86_64-linux-gnu
+        --prefix LD_LIBRARY_PATH : ${hostPamLibraryPath}
       runHook postInstall
     '';
   };
