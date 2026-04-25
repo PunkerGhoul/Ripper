@@ -2,8 +2,15 @@
 
 let
   logoutScript = pkgs.writeShellScript "ripper-logout" ''
-    if [ -n "''${XDG_SESSION_ID:-}" ] && [ -x /usr/bin/loginctl ]; then
-      /usr/bin/loginctl terminate-session "$XDG_SESSION_ID" >/dev/null 2>&1 && exit 0
+    runtime_dir="''${XDG_RUNTIME_DIR:-}"
+    if [ -n "$runtime_dir" ] && [ -r "$runtime_dir/ripper-session.pid" ]; then
+      IFS= read -r session_pid < "$runtime_dir/ripper-session.pid" || session_pid=
+      case "$session_pid" in
+        ""|*[!0-9]*) ;;
+        *)
+          kill -TERM "$session_pid" >/dev/null 2>&1 && exit 0
+          ;;
+      esac
     fi
 
     ${pkgs.i3}/bin/i3-msg exit >/dev/null 2>&1 && exit 0

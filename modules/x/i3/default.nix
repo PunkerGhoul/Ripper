@@ -72,20 +72,6 @@ let
     [ "{{i3lockBin}}" ]
     [ "${i3lock-color}/bin" ]
     (builtins.readFile ./scripts/lock);
-  fastAutostart = pkgs.writeShellScript "ripper-i3-autostart" ''
-    (
-      [ -x /usr/lib/policykit-1-gnome/polkit-gnome-authentication-agent-1 ] \
-        && /usr/lib/policykit-1-gnome/polkit-gnome-authentication-agent-1 &
-
-      ${pkgs.feh}/bin/feh --bg-center --geometry 1920x1080 "$HOME/Pictures/Wallpapers/cyberpunk.jpg" &
-      "$HOME/.local/bin/ripper-polybar-start" &
-      "$HOME/.local/bin/polybar-reload" &
-      ${pkgs.dunst}/bin/dunst -config "$HOME/.config/dunst/dunstrc" &
-      command -v flameshot >/dev/null 2>&1 && flameshot &
-      ${pkgs.numlockx}/bin/numlockx on &
-      ${pkgs.networkmanagerapplet}/bin/nm-applet &
-    ) >/tmp/ripper-i3-autostart.log 2>&1 &
-  '';
   rofiLauncher = pkgs.writeShellScript "ripper-rofi-drun" ''
     export PATH="${config.home.homeDirectory}/.local/bin:${config.home.homeDirectory}/.nix-profile/bin:${config.home.homeDirectory}/.local/state/nix/profiles/profile/bin:$PATH"
     export XDG_DATA_DIRS="${config.home.homeDirectory}/.local/share:${config.home.homeDirectory}/.nix-profile/share:${config.home.homeDirectory}/.local/state/nix/profiles/profile/share:''${XDG_DATA_DIRS:-}"
@@ -97,9 +83,111 @@ let
       -m "Exit this i3 session and return to SDDM?" \
       -B "Yes, logout" "${logoutScript}"
   '';
+  sessionStartScript = ''
+    #!${pkgs.runtimeShell}
+    set -u
+
+    runtime_dir="''${XDG_RUNTIME_DIR:-}"
+    if [ -z "$runtime_dir" ]; then
+      runtime_dir="/tmp/ripper-runtime-$UID"
+      mkdir -p "$runtime_dir"
+      chmod 700 "$runtime_dir"
+      export XDG_RUNTIME_DIR="$runtime_dir"
+    fi
+
+    pid_file="$runtime_dir/ripper-session.pid"
+    children_file="$runtime_dir/ripper-session.children"
+    user_name="''${USER:-}"
+    : > "$children_file"
+    echo "$$" > "$pid_file"
+
+    add_child() {
+      printf '%s\n' "$1" >> "$children_file"
+    }
+
+    cleaned=0
+    cleanup() {
+      [ "$cleaned" = 1 ] && return
+      cleaned=1
+      trap - EXIT INT TERM HUP
+
+      ${pkgs.psmisc}/bin/killall -q polybar 2>/dev/null || true
+      if [ -n "$user_name" ]; then
+        ${pkgs.procps}/bin/pkill -u "$user_name" -x polybar-reload 2>/dev/null || true
+        ${pkgs.procps}/bin/pkill -u "$user_name" -x dunst 2>/dev/null || true
+        ${pkgs.procps}/bin/pkill -u "$user_name" -x nm-applet 2>/dev/null || true
+        ${pkgs.procps}/bin/pkill -u "$user_name" -x flameshot 2>/dev/null || true
+        ${pkgs.procps}/bin/pkill -u "$user_name" -x vmware-user 2>/dev/null || true
+      fi
+
+      if [ -n "''${wm_pid:-}" ]; then
+        kill "$wm_pid" 2>/dev/null || true
+      fi
+
+      if [ -r "$children_file" ]; then
+        while IFS= read -r child_pid; do
+          case "$child_pid" in
+            ""|*[!0-9]*) continue ;;
+          esac
+          kill "$child_pid" 2>/dev/null || true
+        done < "$children_file"
+      fi
+
+      rm -f "$pid_file" "$children_file"
+    }
+
+    terminate() {
+      cleanup
+      exit 0
+    }
+
+    trap terminate INT TERM HUP
+    trap cleanup EXIT
+
+    export XDG_CURRENT_DESKTOP=i3
+    export XDG_SESSION_DESKTOP=ripper
+    export DESKTOP_SESSION=ripper
+
+    if command -v dbus-update-activation-environment >/dev/null 2>&1; then
+      dbus-update-activation-environment --systemd \
+        DISPLAY XAUTHORITY XDG_CURRENT_DESKTOP XDG_SESSION_DESKTOP DESKTOP_SESSION >/dev/null 2>&1 || true
+    fi
+
+    ${pkgs.feh}/bin/feh --bg-center --geometry 1920x1080 "$HOME/Pictures/Wallpapers/cyberpunk.jpg" >/dev/null 2>&1 || true
+    if [ -x "$HOME/.local/bin/ripper-polybar-start" ]; then
+      "$HOME/.local/bin/ripper-polybar-start" >/dev/null 2>&1 || true
+    fi
+
+    ${pkgs.i3}/bin/i3 -c "$HOME/.config/i3/config" &
+    wm_pid="$!"
+
+    (
+      [ -x /usr/lib/policykit-1-gnome/polkit-gnome-authentication-agent-1 ] \
+        && /usr/lib/policykit-1-gnome/polkit-gnome-authentication-agent-1 >/dev/null 2>&1 &
+
+      [ -x /usr/bin/vmware-user ] && /usr/bin/vmware-user >/dev/null 2>&1 &
+
+      if [ -x "$HOME/.local/bin/polybar-reload" ]; then
+        "$HOME/.local/bin/polybar-reload" >/dev/null 2>&1 &
+      fi
+
+      ${pkgs.dunst}/bin/dunst -config "$HOME/.config/dunst/dunstrc" >/dev/null 2>&1 &
+      command -v flameshot >/dev/null 2>&1 && flameshot >/dev/null 2>&1 &
+      ${pkgs.numlockx}/bin/numlockx on >/dev/null 2>&1 || true
+      ${pkgs.networkmanagerapplet}/bin/nm-applet >/dev/null 2>&1 &
+    ) &
+    add_child "$!"
+
+    wait "$wm_pid"
+  '';
 in {
 
   home.file = {
+    ".local/bin/ripper-session-start" = {
+      text = sessionStartScript;
+      executable = true;
+    };
+
     ".config/i3/scripts/lock" = {
       text = lockScript;
       executable = true;
@@ -143,13 +231,7 @@ in {
         inner = 8;
         outer = -8;
       };
-      startup = [
-        {
-          command = toString fastAutostart;
-          notification = false;
-          always = true;
-        }
-      ];
+      startup = [];
       keybindings = lib.mkForce {
         # Menu
         "${modifier}+d" = "exec --no-startup-id ${rofiLauncher}";

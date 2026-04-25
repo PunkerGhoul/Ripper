@@ -350,6 +350,10 @@ if command -v dbus-update-activation-environment >/dev/null 2>&1; then
   dbus-update-activation-environment --systemd DISPLAY XAUTHORITY XDG_CURRENT_DESKTOP XDG_SESSION_DESKTOP DESKTOP_SESSION
 fi
 
+if [ -x "$HOME/.local/bin/ripper-session-start" ]; then
+  exec "$HOME/.local/bin/ripper-session-start"
+fi
+
 if command -v i3 >/dev/null 2>&1; then
   exec i3
 fi
