@@ -139,7 +139,7 @@ in {
       ];
       keybindings = lib.mkOptionDefault {
         # Menu
-        "${modifier}+d" = ''exec "env PATH=$PATH:${config.home.homeDirectory}/.local/bin ${pkgs.rofi}/bin/rofi -modi drun,run -show drun"'';
+        "${modifier}+d" = ''exec "env PATH=${config.home.homeDirectory}/.local/bin:${config.home.homeDirectory}/.nix-profile/bin:${config.home.homeDirectory}/.local/state/nix/profiles/profile/bin:$PATH XDG_DATA_DIRS=${config.home.homeDirectory}/.local/share:${config.home.homeDirectory}/.nix-profile/share:${config.home.homeDirectory}/.local/state/nix/profiles/profile/share:$XDG_DATA_DIRS ${pkgs.rofi}/bin/rofi -modi drun,run -show drun"'';
         # LockScreen
         "${modifier}+x" = "exec $HOME/.config/i3/scripts/lock";
         # Print Screen with FlameShot

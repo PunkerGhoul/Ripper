@@ -2,13 +2,15 @@
 
 let
   nixGL = import ../../nixgl  { inherit pkgs nixGLCommand; };
+  kittyPackage = nixGL unstable.kitty;
 in {
+  xdg.enable = true;
   home.file.".config/kitty/color.ini".source = ./color.ini;
   xdg.desktopEntries.kitty = {
-    name = "kitty";
+    name = "Kitty";
     genericName = "Terminal emulator";
     comment = "Fast, feature-rich, GPU based terminal";
-    exec = "kitty";
+    exec = "${kittyPackage}/bin/kitty";
     icon = "kitty";
     terminal = false;
     categories = [ "System" "TerminalEmulator" ];
@@ -16,7 +18,7 @@ in {
 
   programs.kitty = {
     enable = true;
-    package = (nixGL unstable.kitty);
+    package = kittyPackage;
     font = {
       package = pkgs.meslo-lgs-nf;
       name = "MesloLGS NF";
@@ -39,7 +41,7 @@ in {
       tab_bar_style = "powerline";
       tab_powerline_style = "round";
       background_opacity = 0.7;
-      shell = "zsh";
+      shell = "${pkgs.zsh}/bin/zsh";
       term = "xterm-256color";
     };
   };
