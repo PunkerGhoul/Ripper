@@ -1,14 +1,8 @@
 { pkgs, ... }:
 
 {
-  # Enable NUR (Nix User Repository) for additional packages
+  # NUR is provided by the flake overlay. Keep this module free of impure fetches.
   nixpkgs.config = {
-    packageOverrides = pkgs: {
-      nur = import (builtins.fetchTarball "https://github.com/nix-community/NUR/archive/master.tar.gz") {
-        inherit pkgs;
-      };
-    };
-    # Allow unfree packages (needed for some browser extensions)
     allowUnfree = true;
   };
 
@@ -19,7 +13,7 @@
     };
     gc = {
       automatic = true;
-      frequency = "weekly";
+      dates = "weekly";
       options = "--delete-older-than 15d";
     };
   };

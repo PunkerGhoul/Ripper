@@ -1,33 +1,58 @@
 # Ripper
 
-## Installation
+Ripper is a pure flake-based Home Manager profile for Debian and Arch Linux VMs,
+with VMware as the primary target.
 
-1. Install nix with multi-user
-2. Install Home-Manager
+## Apply
 
-    ```bash
-    nix-channel --add https://github.com/nix-community/home-manager/archive/master.tar.gz home-manager
-    nix-channel --add https://nixos.org/channels/nixpkgs-unstable nixpkgs-unstable
-    nix-channel --add https://github.com/nix-community/nixGL/archive/main.tar.gz nixgl
-    nix-channel --update
-    nix-shell '<home-manager>' -A install
-    ```
+Install Nix with flakes enabled, clone the repository, then run:
 
-3. Clone this repository and apply the configuration:
+```bash
+nix run .
+```
 
-    ```bash
-    git clone https://github.com/PunkerGhoul/Ripper.git
-    cd Ripper
-    cp env.example.nix env.nix
-    nano env.nix
-    home-manager switch -f ./home.nix -b backup
-    ```
+The default app builds a small Go installer. The installer detects the current
+Linux user, home directory, system architecture, distro family, and GPU strategy,
+then writes that data to `local/install.nix`. Home Manager is applied from that
+declaration with:
 
-## Description
+```bash
+home-manager switch --flake path:$PWD#ripper -b backup
+```
 
-This project allows to easily manage and switch between different configurations for various environments. It uses Nix and Home-Manager to create reproducible and isolated environments for development, gaming, and other use cases. The `env.nix` file can be customized to include the necessary packages and configurations for each environment, making it easy to switch between them with a single command.
+Useful explicit commands:
 
-> Note: This project is still in development and may not be fully functional. Use at your own risk.
+```bash
+nix run .#init
+nix run .#doctor
+nix run .#switch
+```
 
-> [!WARNING]  
-> Is oriented towards VMware, therefore some configurations may not work properly on physical hardware. Use with caution and test thoroughly before applying to a production environment.
+## Purity Model
+
+Nix evaluation does not read environment variables, channels, or host state. The
+only host detection happens in the Go installer before evaluation, and its output
+is a normal Nix declaration in `local/install.nix`.
+
+`local/` is intentionally ignored by Git. It is machine-local declaration and
+state, not reusable module logic.
+
+## Graphics
+
+The generated config uses `gpu.wrapper = "mesa";`. In VMware guests this is the
+right pure path for SVGA/Mesa acceleration, including hosts whose physical GPU is
+Nvidia. It also works for Intel, AMD, and Nouveau users on Debian and Arch.
+
+nixGL auto-detection is intentionally not used because it depends on host driver
+state during evaluation. For Nvidia passthrough, edit `local/install.nix` and
+declare a pinned driver:
+
+```nix
+gpu = {
+  wrapper = "nvidia";
+  nvidia = {
+    version = "550.120";
+    sha256 = "sha256-...";
+  };
+};
+```

@@ -1,21 +1,23 @@
-{ config, pkgs, lib, ... }:
+{ config
+, pkgs
+, lib
+, unstable
+, username
+, homeDirectory
+, stateVersion
+, env
+, nixGLCommand
+, ...
+}:
 
 let
-  unstable = import <nixpkgs-unstable> {
-    inherit (pkgs) system;
-    config.allowUnfree = true;
-  };
-
-  env = import ./env.nix;
-  username = builtins.getEnv "USER";
-
   bashPath = "${pkgs.bash}/bin/bash";
   librewolfPath = "${pkgs.librewolf}/bin/librewolf";
 in {
   # Home Manager needs a bit of information about you and the paths it should
   # manage.
   home.username = username;
-  home.homeDirectory = "/home/${username}";
+  home.homeDirectory = homeDirectory;
 
   # This value determines the Home Manager release that your configuration is
   # compatible with. This helps avoid breakage when a new Home Manager release
@@ -24,7 +26,7 @@ in {
   # You should not change this value, even if you update Home Manager. If you do
   # want to update the value, then make sure to first check the Home Manager
   # release notes.
-  home.stateVersion = "25.05"; # Please read the comment before changing.
+  home.stateVersion = stateVersion; # Please read the comment before changing.
 
   # The home.packages option allows you to install Nix packages into your
   # environment.
@@ -115,6 +117,6 @@ in {
 
   imports = [
     (import ./configuration { inherit pkgs; })
-    (import ./modules { inherit config pkgs unstable lib env; })
+    (import ./modules { inherit config pkgs unstable lib env nixGLCommand; })
   ];
 }

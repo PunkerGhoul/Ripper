@@ -1,13 +1,8 @@
-{ config, pkgs }:
+{ pkgs, nixGLCommand }:
 
 pkg:
 
-let
-  nixglPkgs = import <nixgl> { inherit pkgs; };
-
-  nixGL = "${nixglPkgs.auto.nixGLDefault}/bin/nixGL";
-in
-  pkg.overrideAttrs (old: {
+pkg.overrideAttrs (old: {
     name = "nixGL-${pkg.name}";
     buildCommand = ''
       set -eo pipefail
@@ -24,10 +19,9 @@ in
       for file in ${pkg.out}/bin/*; do
         wrapper="$out/bin/$(basename $file)"
         echo "#!${pkgs.bash}/bin/bash" > "$wrapper"
-        echo "exec -a \"\$0\" ${nixGL} \"$file\" \"\$@\"" >> "$wrapper"
+        echo "exec -a \"\$0\" ${nixGLCommand} \"$file\" \"\$@\"" >> "$wrapper"
         chmod +x "$wrapper"
       done
       shopt -u nullglob
     '';
   })
-

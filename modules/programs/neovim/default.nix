@@ -5,6 +5,8 @@
     enable = true;
     defaultEditor = true;
     vimAlias = true;
+    withPython3 = true;
+    withRuby = true;
     plugins = let
       nvim-treesitter-with-plugins =
         pkgs.vimPlugins.nvim-treesitter.withPlugins (treesitter-plugins:
@@ -35,7 +37,6 @@
       vim-nix
       vim-autoformat
     ]);
-    extraLuaConfig = builtins.readFile ./init.lua;
+    initLua = builtins.readFile ./init.lua;
   };
 }
-
