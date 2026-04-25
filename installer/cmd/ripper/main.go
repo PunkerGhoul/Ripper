@@ -64,10 +64,13 @@ func run(args []string) error {
 		if err := ensureI3lockPam(cfg, true); err != nil {
 			return err
 		}
+		if err := runHomeManager(); err != nil {
+			return err
+		}
 		if err := ensureDisplayManager(cfg, true); err != nil {
 			return err
 		}
-		return runHomeManager()
+		return nil
 	default:
 		return fmt.Errorf("unknown command %q; expected init, doctor, or switch", command)
 	}
@@ -321,9 +324,23 @@ func ensureRipperSession(apply bool) error {
 	const desktopPath = "/usr/share/xsessions/ripper.desktop"
 	script := `#!/bin/sh
 # Managed by Ripper.
-if [ -r "$HOME/.nix-profile/etc/profile.d/hm-session-vars.sh" ]; then
-  . "$HOME/.nix-profile/etc/profile.d/hm-session-vars.sh"
-fi
+for profile in \
+  "$HOME/.nix-profile" \
+  "$HOME/.local/state/nix/profiles/profile" \
+  "/etc/profiles/per-user/$USER"; do
+  if [ -r "$profile/etc/profile.d/hm-session-vars.sh" ]; then
+    . "$profile/etc/profile.d/hm-session-vars.sh"
+  fi
+  if [ -d "$profile/bin" ]; then
+    PATH="$profile/bin:$PATH"
+  fi
+  if [ -d "$profile/share" ]; then
+    XDG_DATA_DIRS="$profile/share${XDG_DATA_DIRS:+:$XDG_DATA_DIRS}"
+  fi
+done
+
+export PATH
+export XDG_DATA_DIRS
 
 export XDG_CURRENT_DESKTOP=i3
 export XDG_SESSION_DESKTOP=ripper

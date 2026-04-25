@@ -69,8 +69,8 @@ let
   };
 
   lockScript = builtins.replaceStrings
-    [ "{{scrotBin}}" "{{imagemagickBin}}" "{{i3lockBin}}" ]
-    [ "${pkgs.scrot}/bin" "${pkgs.imagemagick}/bin" "${i3lock-color}/bin" ]
+    [ "{{i3lockBin}}" ]
+    [ "${i3lock-color}/bin" ]
     (builtins.readFile ./scripts/lock);
 in {
 
@@ -121,16 +121,6 @@ in {
         # https://wiki.archlinux.org/index.php/XDG_Autostart
         {
           command = "${pkgs.dex}/bin/dex --autostart --environment i3";
-          notification = false;
-        }
-        # The combination of xss-lock, nm-applet and pactl is a popular choice, so
-        # they are included here as an example. Modify as you see fit.
-        # xss-lock grabs a logind suspend inhibit lock and will use i3lock to lock the
-        # screen before suspend. Use loginctl lock-session to lock your screen.
-        {
-          #  command = "xss-lock --transfer-sleep-lock -- i3lock --nofork";
-          #  command = "xss-lock --transfer-sleep-lock -- $HOME/.config/i3/scripts/lock";
-          command = "$HOME/.config/i3/scripts/lock";
           notification = false;
         }
         # Polkit
