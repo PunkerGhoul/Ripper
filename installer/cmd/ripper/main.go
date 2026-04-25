@@ -45,6 +45,9 @@ func run(args []string) error {
 			return err
 		}
 		printDoctor(cfg)
+		if err := ensureXorg(cfg, false); err != nil {
+			return err
+		}
 		if err := ensureI3lockPam(cfg, false); err != nil {
 			return err
 		}
@@ -55,6 +58,9 @@ func run(args []string) error {
 			return err
 		}
 		printDoctor(cfg)
+		if err := ensureXorg(cfg, true); err != nil {
+			return err
+		}
 		if err := ensureLoginShell(cfg, true); err != nil {
 			return err
 		}
@@ -240,6 +246,125 @@ func ensureLoginShell(cfg installConfig, apply bool) error {
 	return nil
 }
 
+func ensureXorg(cfg installConfig, apply bool) error {
+	missing := missingHostPaths("/usr/bin/startx", "/usr/bin/xinit")
+	needsInstall := len(missing) > 0
+	if cfg.Distro == "debian" && !debianPackageInstalled("xserver-xorg-legacy") {
+		missing = append(missing, "package:xserver-xorg-legacy")
+		needsInstall = true
+	}
+
+	if !needsInstall {
+		fmt.Println("Host Xorg launcher already installed: /usr/bin/startx")
+	} else if !apply {
+		fmt.Printf("Host Xorg packages would be installed; missing: %s\n", strings.Join(missing, ", "))
+	} else if err := installXorgPackages(cfg.Distro); err != nil {
+		return err
+	}
+
+	if cfg.Distro == "debian" {
+		return ensureDebianXwrapper(apply)
+	}
+	return nil
+}
+
+func debianPackageInstalled(name string) bool {
+	dpkgPath, err := systemCommand("dpkg", "/usr/bin/dpkg", "/bin/dpkg")
+	if err != nil {
+		return false
+	}
+	return exec.Command(dpkgPath, "-s", name).Run() == nil
+}
+
+func installXorgPackages(distro string) error {
+	sudoPath, err := systemCommand("sudo", "/usr/bin/sudo", "/bin/sudo")
+	if err != nil {
+		return err
+	}
+	switch distro {
+	case "debian":
+		aptPath, err := systemCommand("apt", "/usr/bin/apt", "/bin/apt")
+		if err != nil {
+			return err
+		}
+		fmt.Println("Installing host Xorg packages for Debian/Ubuntu")
+		if err := runInteractive(sudoPath, aptPath, "update", "-y"); err != nil {
+			return fmt.Errorf("apt update failed: %w", err)
+		}
+		return runInteractive(sudoPath, aptPath, "install", "-y",
+			"xorg",
+			"xorg-dev",
+			"x11-apps",
+			"xinit",
+			"xserver-xorg-legacy",
+			"dbus-x11",
+		)
+	case "arch":
+		pacmanPath, err := systemCommand("pacman", "/usr/bin/pacman", "/bin/pacman")
+		if err != nil {
+			return err
+		}
+		fmt.Println("Installing host Xorg packages for Arch")
+		return runInteractive(sudoPath, pacmanPath, "-Syu", "--needed", "--noconfirm",
+			"xorg-server",
+			"xorg-xinit",
+			"xorg-xauth",
+			"xorg-apps",
+			"dbus",
+		)
+	default:
+		return fmt.Errorf("unsupported distro %q; install xorg-server and xinit with the host package manager", distro)
+	}
+}
+
+func ensureDebianXwrapper(apply bool) error {
+	const wrapperPath = "/etc/X11/Xwrapper.config"
+	expected := `# Managed by Ripper.
+allowed_users=console
+needs_root_rights=yes
+`
+	current, err := os.ReadFile(wrapperPath)
+	hasCurrent := err == nil && len(current) > 0
+	if err == nil && strings.Contains(string(current), "needs_root_rights=yes") {
+		fmt.Println("Xorg wrapper already permits console startup:", wrapperPath)
+		return nil
+	}
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		return fmt.Errorf("read %s: %w", wrapperPath, err)
+	}
+	if !apply {
+		fmt.Println("Xorg wrapper would be configured:", wrapperPath)
+		return nil
+	}
+	sudoPath, err := systemCommand("sudo", "/usr/bin/sudo", "/bin/sudo")
+	if err != nil {
+		return err
+	}
+	shPath, err := systemCommand("sh", "/bin/sh", "/usr/bin/sh")
+	if err != nil {
+		return err
+	}
+	cpPath, err := systemCommand("cp", "/bin/cp", "/usr/bin/cp")
+	if err != nil {
+		return err
+	}
+	if hasCurrent && !strings.Contains(string(current), "Managed by Ripper") {
+		fmt.Println("Backing up existing Xorg wrapper:", wrapperPath+".ripper-backup")
+		if err := runInteractive(sudoPath, cpPath, "-f", wrapperPath, wrapperPath+".ripper-backup"); err != nil {
+			return fmt.Errorf("backup %s failed: %w", wrapperPath, err)
+		}
+	}
+	fmt.Println("Writing Xorg wrapper:", wrapperPath)
+	cmd := exec.Command(sudoPath, shPath, "-c", "umask 022 && cat > /etc/X11/Xwrapper.config")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Stdin = strings.NewReader(expected)
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("write %s failed: %w", wrapperPath, err)
+	}
+	return nil
+}
+
 func ensureI3lockPam(cfg installConfig, apply bool) error {
 	const pamPath = "/etc/pam.d/i3lock"
 	expected := pamConfig(cfg.Distro)
@@ -345,6 +470,24 @@ func ensureShellListed(shellPath string) error {
 		return fmt.Errorf("append /etc/shells failed: %w", err)
 	}
 	return nil
+}
+
+func missingHostPaths(paths ...string) []string {
+	missing := []string{}
+	for _, path := range paths {
+		if _, err := os.Stat(path); err != nil {
+			missing = append(missing, path)
+		}
+	}
+	return missing
+}
+
+func runInteractive(name string, args ...string) error {
+	cmd := exec.Command(name, args...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Stdin = os.Stdin
+	return cmd.Run()
 }
 
 func systemCommand(name string, paths ...string) (string, error) {

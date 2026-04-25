@@ -14,9 +14,11 @@ in {
       fi
     '';
     loginExtra = ''
-      # Auto-start X at login on tty1 (runs after full zsh initialization)
-      if [ -z "$DISPLAY" ] && [ "$(tty)" = "/dev/tty1" ]; then
-        exec startx
+      # Auto-start X at login on tty1 using the host Xorg wrapper.
+      # Nix-provided Xorg/startx cannot own the setuid/logind integration needed
+      # to open the virtual console on Debian/Arch guests.
+      if [ -z "$DISPLAY" ] && [ "$(tty)" = "/dev/tty1" ] && [ -x /usr/bin/startx ]; then
+        exec /usr/bin/startx
       fi
     '';
     envExtra = ''

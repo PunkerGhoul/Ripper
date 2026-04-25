@@ -1,9 +1,6 @@
 { config, pkgs, lib, ... }:
 
 {
-  home.activation.install-xorg = lib.hm.dag.entryAfter [ "writeBoundary" ]
-    (builtins.readFile ./scripts/install-xorg.sh);
-
   home.activation.install-vmware-tools = lib.hm.dag.entryAfter [ "writeBoundary" ]
     (builtins.replaceStrings
       [ "{{gnuGrep}}" "{{systemd}}" "{{pciUtils}}" ]
