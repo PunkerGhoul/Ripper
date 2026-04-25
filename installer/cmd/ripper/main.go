@@ -45,7 +45,7 @@ func run(args []string) error {
 			return err
 		}
 		printDoctor(cfg)
-		if err := ensureXorg(cfg, false); err != nil {
+		if err := ensureDisplayManager(cfg, false); err != nil {
 			return err
 		}
 		if err := ensureI3lockPam(cfg, false); err != nil {
@@ -58,7 +58,7 @@ func run(args []string) error {
 			return err
 		}
 		printDoctor(cfg)
-		if err := ensureXorg(cfg, true); err != nil {
+		if err := ensureDisplayManager(cfg, true); err != nil {
 			return err
 		}
 		if err := ensureLoginShell(cfg, true); err != nil {
@@ -246,26 +246,26 @@ func ensureLoginShell(cfg installConfig, apply bool) error {
 	return nil
 }
 
-func ensureXorg(cfg installConfig, apply bool) error {
-	missing := missingHostPaths("/usr/bin/startx", "/usr/bin/xinit")
+func ensureDisplayManager(cfg installConfig, apply bool) error {
+	missing := missingHostPaths("/usr/bin/sddm")
 	needsInstall := len(missing) > 0
-	if cfg.Distro == "debian" && !debianPackageInstalled("xserver-xorg-legacy") {
-		missing = append(missing, "package:xserver-xorg-legacy")
+	if cfg.Distro == "debian" && !debianPackageInstalled("sddm") {
+		missing = append(missing, "package:sddm")
 		needsInstall = true
 	}
 
 	if !needsInstall {
-		fmt.Println("Host Xorg launcher already installed: /usr/bin/startx")
+		fmt.Println("Host display manager already installed: /usr/bin/sddm")
 	} else if !apply {
-		fmt.Printf("Host Xorg packages would be installed; missing: %s\n", strings.Join(missing, ", "))
-	} else if err := installXorgPackages(cfg.Distro); err != nil {
+		fmt.Printf("Host SDDM packages would be installed; missing: %s\n", strings.Join(missing, ", "))
+	} else if err := installDisplayManagerPackages(cfg.Distro); err != nil {
 		return err
 	}
 
-	if cfg.Distro == "debian" {
-		return ensureDebianXwrapper(apply)
+	if err := ensureRipperSession(apply); err != nil {
+		return err
 	}
-	return nil
+	return ensureSddmEnabled(apply)
 }
 
 func debianPackageInstalled(name string) bool {
@@ -276,7 +276,7 @@ func debianPackageInstalled(name string) bool {
 	return exec.Command(dpkgPath, "-s", name).Run() == nil
 }
 
-func installXorgPackages(distro string) error {
+func installDisplayManagerPackages(distro string) error {
 	sudoPath, err := systemCommand("sudo", "/usr/bin/sudo", "/bin/sudo")
 	if err != nil {
 		return err
@@ -287,16 +287,13 @@ func installXorgPackages(distro string) error {
 		if err != nil {
 			return err
 		}
-		fmt.Println("Installing host Xorg packages for Debian/Ubuntu")
+		fmt.Println("Installing host SDDM packages for Debian/Ubuntu")
 		if err := runInteractive(sudoPath, aptPath, "update", "-y"); err != nil {
 			return fmt.Errorf("apt update failed: %w", err)
 		}
 		return runInteractive(sudoPath, aptPath, "install", "-y",
+			"sddm",
 			"xorg",
-			"xorg-dev",
-			"x11-apps",
-			"xinit",
-			"xserver-xorg-legacy",
 			"dbus-x11",
 		)
 	case "arch":
@@ -304,63 +301,90 @@ func installXorgPackages(distro string) error {
 		if err != nil {
 			return err
 		}
-		fmt.Println("Installing host Xorg packages for Arch")
+		fmt.Println("Installing host SDDM packages for Arch")
 		return runInteractive(sudoPath, pacmanPath, "-Syu", "--needed", "--noconfirm",
+			"sddm",
 			"xorg-server",
-			"xorg-xinit",
 			"xorg-xauth",
-			"xorg-apps",
 			"dbus",
 		)
 	default:
-		return fmt.Errorf("unsupported distro %q; install xorg-server and xinit with the host package manager", distro)
+		return fmt.Errorf("unsupported distro %q; install sddm and xorg-server with the host package manager", distro)
 	}
 }
 
-func ensureDebianXwrapper(apply bool) error {
-	const wrapperPath = "/etc/X11/Xwrapper.config"
-	expected := `# Managed by Ripper.
-allowed_users=console
-needs_root_rights=yes
+func ensureRipperSession(apply bool) error {
+	const scriptPath = "/usr/local/bin/ripper-session"
+	const desktopPath = "/usr/share/xsessions/ripper.desktop"
+	script := `#!/bin/sh
+# Managed by Ripper.
+if [ -r "$HOME/.nix-profile/etc/profile.d/hm-session-vars.sh" ]; then
+  . "$HOME/.nix-profile/etc/profile.d/hm-session-vars.sh"
+fi
+
+export XDG_CURRENT_DESKTOP=i3
+export XDG_SESSION_DESKTOP=ripper
+export DESKTOP_SESSION=ripper
+
+if command -v dbus-update-activation-environment >/dev/null 2>&1; then
+  dbus-update-activation-environment --systemd DISPLAY XAUTHORITY XDG_CURRENT_DESKTOP XDG_SESSION_DESKTOP DESKTOP_SESSION
+fi
+
+if [ -r "$HOME/.xsession" ]; then
+  exec /bin/sh "$HOME/.xsession"
+fi
+
+if [ -x "$HOME/.nix-profile/bin/i3" ]; then
+  exec "$HOME/.nix-profile/bin/i3"
+fi
+
+exec i3
 `
-	current, err := os.ReadFile(wrapperPath)
-	hasCurrent := err == nil && len(current) > 0
-	if err == nil && strings.Contains(string(current), "needs_root_rights=yes") {
-		fmt.Println("Xorg wrapper already permits console startup:", wrapperPath)
+	desktop := `[Desktop Entry]
+Name=Ripper
+Comment=Ripper i3 session
+Exec=/usr/local/bin/ripper-session
+TryExec=/usr/local/bin/ripper-session
+Type=Application
+DesktopNames=i3;Ripper
+`
+	if fileHasContent(scriptPath, script) && fileHasContent(desktopPath, desktop) {
+		fmt.Println("Ripper SDDM session already configured")
 		return nil
 	}
-	if err != nil && !errors.Is(err, os.ErrNotExist) {
-		return fmt.Errorf("read %s: %w", wrapperPath, err)
+	if !apply {
+		fmt.Println("Ripper SDDM session would be written")
+		return nil
+	}
+	if err := writeRootFile(scriptPath, script, "0755"); err != nil {
+		return err
+	}
+	return writeRootFile(desktopPath, desktop, "0644")
+}
+
+func ensureSddmEnabled(apply bool) error {
+	systemctlPath, err := systemCommand("systemctl", "/usr/bin/systemctl", "/bin/systemctl")
+	if err != nil {
+		return err
+	}
+	if exec.Command(systemctlPath, "is-enabled", "--quiet", "sddm.service").Run() == nil {
+		fmt.Println("SDDM service already enabled")
+		return nil
 	}
 	if !apply {
-		fmt.Println("Xorg wrapper would be configured:", wrapperPath)
+		fmt.Println("SDDM service would be enabled")
 		return nil
 	}
 	sudoPath, err := systemCommand("sudo", "/usr/bin/sudo", "/bin/sudo")
 	if err != nil {
 		return err
 	}
-	shPath, err := systemCommand("sh", "/bin/sh", "/usr/bin/sh")
-	if err != nil {
-		return err
+	fmt.Println("Enabling SDDM service")
+	if err := runInteractive(sudoPath, systemctlPath, "enable", "--force", "sddm.service"); err != nil {
+		return fmt.Errorf("enable sddm.service failed: %w", err)
 	}
-	cpPath, err := systemCommand("cp", "/bin/cp", "/usr/bin/cp")
-	if err != nil {
-		return err
-	}
-	if hasCurrent && !strings.Contains(string(current), "Managed by Ripper") {
-		fmt.Println("Backing up existing Xorg wrapper:", wrapperPath+".ripper-backup")
-		if err := runInteractive(sudoPath, cpPath, "-f", wrapperPath, wrapperPath+".ripper-backup"); err != nil {
-			return fmt.Errorf("backup %s failed: %w", wrapperPath, err)
-		}
-	}
-	fmt.Println("Writing Xorg wrapper:", wrapperPath)
-	cmd := exec.Command(sudoPath, shPath, "-c", "umask 022 && cat > /etc/X11/Xwrapper.config")
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Stdin = strings.NewReader(expected)
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("write %s failed: %w", wrapperPath, err)
+	if err := runInteractive(sudoPath, systemctlPath, "set-default", "graphical.target"); err != nil {
+		return fmt.Errorf("set graphical.target failed: %w", err)
 	}
 	return nil
 }
@@ -480,6 +504,31 @@ func missingHostPaths(paths ...string) []string {
 		}
 	}
 	return missing
+}
+
+func fileHasContent(path string, expected string) bool {
+	current, err := os.ReadFile(path)
+	return err == nil && strings.TrimSpace(string(current)) == strings.TrimSpace(expected)
+}
+
+func writeRootFile(path string, content string, mode string) error {
+	sudoPath, err := systemCommand("sudo", "/usr/bin/sudo", "/bin/sudo")
+	if err != nil {
+		return err
+	}
+	shPath, err := systemCommand("sh", "/bin/sh", "/usr/bin/sh")
+	if err != nil {
+		return err
+	}
+	fmt.Println("Writing", path)
+	cmd := exec.Command(sudoPath, shPath, "-c", "umask 022 && mkdir -p \"$1\" && cat > \"$2\" && chmod \"$3\" \"$2\"", "sh", filepath.Dir(path), path, mode)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Stdin = strings.NewReader(content)
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("write %s failed: %w", path, err)
+	}
+	return nil
 }
 
 func runInteractive(name string, args ...string) error {

@@ -13,14 +13,6 @@ in {
         . "$HOME/.nix-profile/etc/profile.d/hm-session-vars.sh"
       fi
     '';
-    loginExtra = ''
-      # Auto-start X at login on tty1 using the host Xorg wrapper.
-      # Nix-provided Xorg/startx cannot own the setuid/logind integration needed
-      # to open the virtual console on Debian/Arch guests.
-      if [ -z "$DISPLAY" ] && [ "$(tty)" = "/dev/tty1" ] && [ -x /usr/bin/startx ]; then
-        exec /usr/bin/startx
-      fi
-    '';
     envExtra = ''
       export GPG_TTY=$(tty)
       export GOPATH=$HOME/.go
