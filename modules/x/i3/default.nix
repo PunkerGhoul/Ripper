@@ -77,6 +77,7 @@ let
     export XDG_DATA_DIRS="${config.home.homeDirectory}/.local/share:${config.home.homeDirectory}/.nix-profile/share:${config.home.homeDirectory}/.local/state/nix/profiles/profile/share:''${XDG_DATA_DIRS:-}"
     exec ${pkgs.rofi}/bin/rofi -modi drun,run -show drun
   '';
+  kittyLauncher = "${config.home.homeDirectory}/.local/bin/ripper-kitty";
   confirmLogoutScript = pkgs.writeShellScript "ripper-confirm-logout" ''
     exec ${pkgs.i3}/bin/i3-nagbar \
       -t warning \
@@ -225,7 +226,7 @@ in {
     config = {
       modifier = "Mod4";
       bars = [];
-      terminal = "${config.programs.kitty.package}/bin/kitty";
+      terminal = kittyLauncher;
       fonts = {
         names = [ "pango" ];
         style = "monospace";
@@ -243,7 +244,7 @@ in {
       };
       gaps = {
         inner = 8;
-        outer = -8;
+        outer = 4;
       };
       startup = [
         {
@@ -255,7 +256,7 @@ in {
       keybindings = lib.mkForce {
         # Menu
         "${modifier}+d" = "exec --no-startup-id ${rofiLauncher}";
-        "${modifier}+Return" = "exec --no-startup-id ${config.programs.kitty.package}/bin/kitty";
+        "${modifier}+Return" = "exec --no-startup-id ${kittyLauncher}";
         "XF86AudioRaiseVolume" = "exec --no-startup-id ${pkgs.pamixer}/bin/pamixer --allow-boost --increase 5";
         "XF86AudioLowerVolume" = "exec --no-startup-id ${pkgs.pamixer}/bin/pamixer --decrease 5";
         "XF86AudioMute" = "exec --no-startup-id ${pkgs.pamixer}/bin/pamixer --toggle-mute";
