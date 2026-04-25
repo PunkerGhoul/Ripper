@@ -86,6 +86,11 @@ let
       ${pkgs.networkmanagerapplet}/bin/nm-applet &
     ) >/tmp/ripper-i3-autostart.log 2>&1 &
   '';
+  rofiLauncher = pkgs.writeShellScript "ripper-rofi-drun" ''
+    export PATH="${config.home.homeDirectory}/.local/bin:${config.home.homeDirectory}/.nix-profile/bin:${config.home.homeDirectory}/.local/state/nix/profiles/profile/bin:$PATH"
+    export XDG_DATA_DIRS="${config.home.homeDirectory}/.local/share:${config.home.homeDirectory}/.nix-profile/share:${config.home.homeDirectory}/.local/state/nix/profiles/profile/share:''${XDG_DATA_DIRS:-}"
+    exec ${pkgs.rofi}/bin/rofi -modi drun,run -show drun
+  '';
 in {
 
   home.file = {
@@ -139,11 +144,10 @@ in {
       ];
       keybindings = lib.mkOptionDefault {
         # Menu
-        "${modifier}+d" = ''exec "env PATH=${config.home.homeDirectory}/.local/bin:${config.home.homeDirectory}/.nix-profile/bin:${config.home.homeDirectory}/.local/state/nix/profiles/profile/bin:$PATH XDG_DATA_DIRS=${config.home.homeDirectory}/.local/share:${config.home.homeDirectory}/.nix-profile/share:${config.home.homeDirectory}/.local/state/nix/profiles/profile/share:$XDG_DATA_DIRS ${pkgs.rofi}/bin/rofi -modi drun,run -show drun"'';
+        "${modifier}+d" = "exec --no-startup-id ${rofiLauncher}";
         "XF86AudioRaiseVolume" = "exec --no-startup-id ${pkgs.pamixer}/bin/pamixer --allow-boost --increase 5";
         "XF86AudioLowerVolume" = "exec --no-startup-id ${pkgs.pamixer}/bin/pamixer --decrease 5";
         "XF86AudioMute" = "exec --no-startup-id ${pkgs.pamixer}/bin/pamixer --toggle-mute";
-        "XF86AudioMicMute" = "exec --no-startup-id ${pkgs.pamixer}/bin/pamixer --default-source --toggle-mute";
         # LockScreen
         "${modifier}+x" = "exec $HOME/.config/i3/scripts/lock";
         # Print Screen with FlameShot
