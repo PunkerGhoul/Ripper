@@ -1,9 +1,10 @@
-{ config, pkgs, unstable, nixGLCommand, ...}:
+{ config, pkgs, unstable, nixGLCommand, ... }:
 
 let
-  nixGL = import ../../nixgl  { inherit pkgs nixGLCommand; };
+  nixGL = import ../../../nixgl { inherit pkgs nixGLCommand; };
   kittyPackage = nixGL unstable.kitty;
-in {
+in
+{
   xdg.enable = true;
   home.file.".config/kitty/color.ini".source = ./color.ini;
   home.file.".local/bin/ripper-kitty" = {

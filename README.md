@@ -37,6 +37,12 @@ is a normal Nix declaration in `local/install.nix`.
 `local/` is intentionally ignored by Git. It is machine-local declaration and
 state, not reusable module logic.
 
+Optional local secrets and identity data live in `local/env.nix`. When the file
+is absent, the flake uses empty safe defaults.
+
+Reusable Nix code lives under `nix/`. The root `flake.nix` only exists as the
+stable entrypoint required by `nix run .`.
+
 ## Graphics
 
 The generated config uses `gpu.wrapper = "mesa";`. In VMware guests this is the
