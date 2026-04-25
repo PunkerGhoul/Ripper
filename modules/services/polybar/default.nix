@@ -25,13 +25,54 @@ let
         ${pkgs.i3}/bin/i3-msg exit >/dev/null 2>&1 || true
       '';
   polybarTheme  = import ./polybar-themes   { inherit pkgs theme polybarPackage; logoutScript = resolvedLogoutScript; };
-  polybarStart = pkgs.writeShellScript "ripper-polybar-start" ''
+  polybarStartScript = ''
+    #!${pkgs.runtimeShell}
+    runtime_dir="''${XDG_RUNTIME_DIR:-/tmp}"
+    log="$runtime_dir/ripper-polybar.log"
     config="$HOME/.config/polybar/${theme}/config.ini"
-    [ -r "$config" ] || exit 0
 
-    ${pkgs.psmisc}/bin/killall -q polybar 2>/dev/null || true
-    ${polybarPackage}/bin/polybar -q top -c "$config" &
-    ${polybarPackage}/bin/polybar -q bottom -c "$config" &
+    {
+      echo "ripper-polybar-start: $(${pkgs.coreutils}/bin/date)"
+
+      if [ -z "''${DISPLAY:-}" ]; then
+        echo "DISPLAY is not set"
+        exit 0
+      fi
+
+      for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
+        [ -r "$config" ] && break
+        ${pkgs.coreutils}/bin/sleep 0.05
+      done
+      if [ ! -r "$config" ]; then
+        echo "missing config: $config"
+        exit 0
+      fi
+
+      for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
+        ${pkgs.i3}/bin/i3-msg -t get_workspaces >/dev/null 2>&1 && break
+        ${pkgs.coreutils}/bin/sleep 0.05
+      done
+
+      for _ in 1 2 3 4 5; do
+        ${pkgs.psmisc}/bin/killall -q polybar 2>/dev/null || true
+        for _ in 1 2 3 4 5 6 7 8 9 10; do
+          ${pkgs.procps}/bin/pgrep -u "$UID" -x polybar >/dev/null 2>&1 || break
+          ${pkgs.coreutils}/bin/sleep 0.05
+        done
+
+        ${polybarPackage}/bin/polybar -q top -c "$config" &
+        ${polybarPackage}/bin/polybar -q bottom -c "$config" &
+
+        ${pkgs.coreutils}/bin/sleep 0.2
+        running="$(${pkgs.procps}/bin/pgrep -u "$UID" -x polybar 2>/dev/null | ${pkgs.coreutils}/bin/wc -l | ${pkgs.coreutils}/bin/tr -d ' ' || true)"
+        if [ "''${running:-0}" -ge 2 ]; then
+          echo "polybar started: $running processes"
+          exit 0
+        fi
+
+        echo "polybar did not stay up; retrying"
+      done
+    } > "$log" 2>&1
   '';
 in
 {
@@ -59,7 +100,7 @@ in
   };
 
   home.file.".local/bin/ripper-polybar-start" = {
-    source = polybarStart;
+    text = polybarStartScript;
     executable = true;
   };
 }
