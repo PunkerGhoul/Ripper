@@ -142,9 +142,10 @@ in {
           always = true;
         }
       ];
-      keybindings = lib.mkOptionDefault {
+      keybindings = lib.mkForce {
         # Menu
         "${modifier}+d" = "exec --no-startup-id ${rofiLauncher}";
+        "${modifier}+Return" = "exec ${config.programs.kitty.package}/bin/kitty";
         "XF86AudioRaiseVolume" = "exec --no-startup-id ${pkgs.pamixer}/bin/pamixer --allow-boost --increase 5";
         "XF86AudioLowerVolume" = "exec --no-startup-id ${pkgs.pamixer}/bin/pamixer --decrease 5";
         "XF86AudioMute" = "exec --no-startup-id ${pkgs.pamixer}/bin/pamixer --toggle-mute";
@@ -222,6 +223,9 @@ in {
         "${modifier}+Shift+space" = "floating toggle";
         # Change focus between tiling / floating windows
         "${modifier}+space" = "focus mode_toggle";
+        # Scratchpad
+        "${modifier}+Shift+minus" = "move scratchpad";
+        "${modifier}+minus" = "scratchpad show";
         # Container
         ## Focus the parent container
         "${modifier}+a" = "focus parent";
