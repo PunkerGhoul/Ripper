@@ -2,7 +2,7 @@
 # Based on romkatv/powerlevel10k/config/p10k-classic.zsh, checksum 02750.
 # Wizard options: nerdfont-complete + powerline, small icons, classic, unicode, dark,
 # 12h time, angled separators, slanted heads, blurred tails, 2 lines, disconnected,
-# left frame, compact, many icons, concise, transient_prompt, instant_prompt=verbose.
+# left frame, compact, many icons, concise, transient_prompt, instant_prompt=quiet.
 # Type `p10k configure` to generate another config.
 #
 # Config for Powerlevel10k with classic powerline prompt style. Type `p10k configure` to generate
@@ -1724,7 +1724,7 @@
   #   - verbose: Enable instant prompt and print a warning when detecting console output during
   #              zsh initialization. Choose this if you've never tried instant prompt, haven't
   #              seen the warning, or if you are unsure what this all means.
-  typeset -g POWERLEVEL9K_INSTANT_PROMPT=verbose
+  typeset -g POWERLEVEL9K_INSTANT_PROMPT=quiet
 
   # Hot reload allows you to change POWERLEVEL9K options after Powerlevel10k has been initialized.
   # For example, you can type POWERLEVEL9K_BACKGROUND=red and see your prompt turn red. Hot reload

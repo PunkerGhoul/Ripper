@@ -1,4 +1,4 @@
-{ config, pkgs, ...}:
+{ config, pkgs, lib, ...}:
 
 let
   ohMyZshConfig = import ./oh-my-zsh { inherit pkgs; };
@@ -14,13 +14,50 @@ in {
       fi
     '';
     envExtra = ''
-      export GPG_TTY=$(tty)
+      export GPG_TTY="$TTY"
       export GOPATH=$HOME/.go
       export PATH="$PATH:$GOPATH/bin"
       export PATH="$PATH:$HOME/Documents/Tools"
       export PATH="$PATH:$HOME/.local/bin"
       export FZF_BASE="${pkgs.fzf}/share/fzf"
     '';
+    initContent = lib.mkMerge [
+      (lib.mkBefore ''
+        # Powerlevel10k instant prompt must stay before oh-my-zsh/plugins.
+        if [[ -r "''${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-''${(%):-%n}.zsh" ]]; then
+          source "''${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-''${(%):-%n}.zsh"
+        fi
+
+        _ripper_zsh_cache_dir="''${XDG_CACHE_HOME:-$HOME/.cache}/zsh"
+        export ZSH_CACHE_DIR="''${XDG_CACHE_HOME:-$HOME/.cache}/oh-my-zsh"
+        [[ -d "$_ripper_zsh_cache_dir" && -d "$ZSH_CACHE_DIR" ]] || mkdir -p "$_ripper_zsh_cache_dir" "$ZSH_CACHE_DIR"
+
+        export ZSH_DISABLE_COMPFIX=true
+        export ZSH_COMPDUMP="$_ripper_zsh_cache_dir/.zcompdump-''${HOST:-unknown}-''${ZSH_VERSION}"
+        zstyle ':completion:*' use-cache on
+        zstyle ':completion:*' cache-path "$_ripper_zsh_cache_dir/zcompcache"
+      '')
+      (lib.mkAfter ''
+        # Keep the full plugin stack, but compile startup files after the prompt is usable.
+        () {
+          emulate -L zsh
+          setopt no_bg_nice
+          () {
+            emulate -L zsh
+            local zsh_file
+            for zsh_file in \
+              "$ZDOTDIR/.zshrc" \
+              "$ZDOTDIR/.zshenv" \
+              "$ZDOTDIR/.zprofile" \
+              "$ZSH_COMPDUMP"; do
+              [[ -r "$zsh_file" ]] || continue
+              [[ ! -r "$zsh_file.zwc" || "$zsh_file" -nt "$zsh_file.zwc" ]] || continue
+              zcompile -R "$zsh_file" >/dev/null 2>&1 || true
+            done
+          } >/dev/null 2>&1 &!
+        }
+      '')
+    ];
     shellAliases = {
       ipfuscate = ''
         function _ipfuscate() { python3 /opt/IPFuscator/ipfuscator.py "$1" | awk -F "\t" "/IP Address:/,0 {if (\$2 && \$2 !~ /:$| \$/) {gsub(\" \", \"\t\", \$2); print \$2}}"; }; _ipfuscate;
@@ -32,4 +69,17 @@ in {
     inherit (ohMyZshConfig) oh-my-zsh;
     inherit (pluginsList) plugins;
   };
+
+  home.activation.compile-zsh-startup = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    zsh_bin="${pkgs.zsh}/bin/zsh"
+    zsh_dir="${config.home.homeDirectory}/.config/zsh"
+    cache_dir="${config.xdg.cacheHome}/zsh"
+
+    ${pkgs.coreutils}/bin/mkdir -p "$cache_dir"
+    for zsh_file in "$zsh_dir/.zshrc" "$zsh_dir/.zshenv" "$zsh_dir/.zprofile"; do
+      if [ -r "$zsh_file" ]; then
+        "$zsh_bin" -fc 'zcompile -R "$1"' ripper-compile-zsh "$zsh_file" >/dev/null 2>&1 || true
+      fi
+    done
+  '';
 }

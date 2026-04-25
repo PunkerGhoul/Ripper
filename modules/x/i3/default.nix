@@ -238,7 +238,7 @@ in {
       keybindings = lib.mkForce {
         # Menu
         "${modifier}+d" = "exec --no-startup-id ${rofiLauncher}";
-        "${modifier}+Return" = "exec ${config.programs.kitty.package}/bin/kitty";
+        "${modifier}+Return" = "exec --no-startup-id ${config.programs.kitty.package}/bin/kitty";
         "XF86AudioRaiseVolume" = "exec --no-startup-id ${pkgs.pamixer}/bin/pamixer --allow-boost --increase 5";
         "XF86AudioLowerVolume" = "exec --no-startup-id ${pkgs.pamixer}/bin/pamixer --decrease 5";
         "XF86AudioMute" = "exec --no-startup-id ${pkgs.pamixer}/bin/pamixer --toggle-mute";
