@@ -216,12 +216,12 @@ in {
       };
       window = {
         titlebar = false;
-        border = 0;
+        border = 2;
         hideEdgeBorders = "none";
       };
       floating = {
         titlebar = false;
-        border = 0;
+        border = 2;
         # Use Mouse+$mod to drag floating windows to their wanted position
       };
       gaps = {
@@ -365,8 +365,18 @@ in {
       };
     };
     extraConfig = ''
-      default_border none
-      default_floating_border none
+      focus_follows_mouse yes
+      mouse_warping none
+      default_orientation horizontal
+      workspace_layout default
+      default_border pixel 2
+      default_floating_border pixel 2
+      hide_edge_borders none
+      client.focused          #8e5cff #8e5cff #f7f0ff #b983ff #b983ff
+      client.focused_inactive #4b2f6f #4b2f6f #d9c7ff #6f42a8 #6f42a8
+      client.unfocused        #241833 #241833 #a68ac7 #3a2653 #3a2653
+      client.urgent           #d75f8f #d75f8f #ffffff #d75f8f #d75f8f
+      client.placeholder      #1b1326 #1b1326 #d9c7ff #1b1326 #1b1326
     '';
   };
 }

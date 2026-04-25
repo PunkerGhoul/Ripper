@@ -17,6 +17,16 @@ vim.opt.cursorline = true
 -- Show invisible characters like tabs and trailing spaces
 vim.opt.list = true
 
+local function optional_require(module)
+  local ok, loaded = pcall(require, module)
+  if ok then
+    return loaded
+  end
+
+  vim.notify("Neovim plugin not found: " .. module, vim.log.levels.WARN)
+  return nil
+end
+
 -----------------------------------------------------------
 -- Indentation
 -----------------------------------------------------------
@@ -62,45 +72,56 @@ vim.cmd("syntax on")
 -- Treesitter Configuration
 -----------------------------------------------------------
 
-require("nvim-treesitter.configs").setup {
-  highlight = {
-    enable = true,
-  },
-  indent = {
-    enable = true,
-  },
-}
+local treesitter = optional_require("nvim-treesitter.configs")
+if treesitter then
+  treesitter.setup {
+    auto_install = false,
+    highlight = {
+      enable = true,
+    },
+    indent = {
+      enable = true,
+    },
+  }
+end
 
 -----------------------------------------------------------
 -- TODO Comments Highlighting
 -----------------------------------------------------------
 
-require("todo-comments").setup {}
+local todo_comments = optional_require("todo-comments")
+if todo_comments then
+  todo_comments.setup {}
+end
 
 -----------------------------------------------------------
 -- Indent Guides (indent-blankline-nvim)
 -----------------------------------------------------------
 
-require("ibl").setup({
-  indent = {
-    char = {"|"}
-  }
-})
+local ibl = optional_require("ibl")
+if ibl then
+  ibl.setup({
+    indent = {
+      char = {"|"}
+    }
+  })
+end
 
 -----------------------------------------------------------
 -- Autocompletion (nvim-cmp)
 -----------------------------------------------------------
 
-local cmp = require("cmp")
+local cmp = optional_require("cmp")
 
-cmp.setup({
-  mapping = {
-    ["<C-Space>"] = cmp.mapping.complete(),
-    ["<CR>"] = cmp.mapping.confirm({ select = true }),
-  },
-  sources = {
-    { name = "nvim_lsp" },
-    { name = "buffer" },
-  },
-})
-
+if cmp then
+  cmp.setup({
+    mapping = {
+      ["<C-Space>"] = cmp.mapping.complete(),
+      ["<CR>"] = cmp.mapping.confirm({ select = true }),
+    },
+    sources = {
+      { name = "nvim_lsp" },
+      { name = "buffer" },
+    },
+  })
+end
