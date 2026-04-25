@@ -2,11 +2,11 @@
 
 let
   logoutScript = pkgs.writeShellScript "ripper-logout" ''
-    ${pkgs.i3}/bin/i3-msg exit >/dev/null 2>&1 && exit 0
-
     if [ -n "''${XDG_SESSION_ID:-}" ] && [ -x /usr/bin/loginctl ]; then
-      exec /usr/bin/loginctl terminate-session "$XDG_SESSION_ID"
+      /usr/bin/loginctl terminate-session "$XDG_SESSION_ID" >/dev/null 2>&1 && exit 0
     fi
+
+    ${pkgs.i3}/bin/i3-msg exit >/dev/null 2>&1 && exit 0
 
     exit 1
   '';

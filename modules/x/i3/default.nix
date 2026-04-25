@@ -91,6 +91,12 @@ let
     export XDG_DATA_DIRS="${config.home.homeDirectory}/.local/share:${config.home.homeDirectory}/.nix-profile/share:${config.home.homeDirectory}/.local/state/nix/profiles/profile/share:''${XDG_DATA_DIRS:-}"
     exec ${pkgs.rofi}/bin/rofi -modi drun,run -show drun
   '';
+  confirmLogoutScript = pkgs.writeShellScript "ripper-confirm-logout" ''
+    exec ${pkgs.i3}/bin/i3-nagbar \
+      -t warning \
+      -m "Exit this i3 session and return to SDDM?" \
+      -B "Yes, logout" "${logoutScript}"
+  '';
 in {
 
   home.file = {
@@ -124,10 +130,12 @@ in {
         size = 8.0;
       };
       window = {
+        titlebar = false;
         border = 0;
         hideEdgeBorders = "none";
       };
       floating = {
+        titlebar = false;
         border = 0;
         # Use Mouse+$mod to drag floating windows to their wanted position
       };
@@ -160,8 +168,7 @@ in {
         # Restart i3 inplace (preserves your layout/session, can be used to upgrade i3)
         "${modifier}+Shift+r" = "restart";
         # Exit i3 (logs you out of your X session)
-        "${modifier}+Shift+e" = ''
-          exec ${pkgs.i3}/bin/i3-nagbar -t warning -m 'Exit this i3 session and return to SDDM?' -B 'Yes, logout' '${logoutScript}' '';
+        "${modifier}+Shift+e" = "exec --no-startup-id ${confirmLogoutScript}";
         # kill Focused Window
         "${modifier}+Shift+q" = "kill";
         # Workspaces
@@ -272,5 +279,9 @@ in {
         "4" = [{ class = "obsidian"; }];
       };
     };
+    extraConfig = ''
+      default_border none
+      default_floating_border none
+    '';
   };
 }
