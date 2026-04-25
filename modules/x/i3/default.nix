@@ -113,6 +113,7 @@ let
 
       ${pkgs.psmisc}/bin/killall -q polybar 2>/dev/null || true
       if [ -n "$user_name" ]; then
+        ${pkgs.procps}/bin/pkill -u "$user_name" -x picom 2>/dev/null || true
         ${pkgs.procps}/bin/pkill -u "$user_name" -x polybar-reload 2>/dev/null || true
         ${pkgs.procps}/bin/pkill -u "$user_name" -x dunst 2>/dev/null || true
         ${pkgs.procps}/bin/pkill -u "$user_name" -x nm-applet 2>/dev/null || true
@@ -159,6 +160,10 @@ let
     ${pkgs.feh}/bin/feh --bg-center --geometry 1920x1080 "$HOME/Pictures/Wallpapers/cyberpunk.jpg" >/dev/null 2>&1 || true
 
     (
+      if [ -x "$HOME/.local/bin/ripper-picom-start" ]; then
+        "$HOME/.local/bin/ripper-picom-start" >/dev/null 2>&1 &
+      fi
+
       [ -x /usr/lib/policykit-1-gnome/polkit-gnome-authentication-agent-1 ] \
         && /usr/lib/policykit-1-gnome/polkit-gnome-authentication-agent-1 >/dev/null 2>&1 &
 
@@ -304,7 +309,7 @@ in {
         ## Horizontal Orientation
         "${modifier}+h" = "split h";
         ## Vertical Orientation
-        "${modifier}+v" = "split v";
+        "${modifier}+v" = "focus right; split v";
         # FullScreen mode for the focused container
         "${modifier}+f" = "fullscreen toggle";
         # Container layout (stacked, tabbed, toggle split)

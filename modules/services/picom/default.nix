@@ -1,32 +1,47 @@
-{ pkgs, ... }:
+{ pkgs, nixGLCommand, ... }:
 
+let
+  nixGL = import ../../nixgl { inherit pkgs nixGLCommand; };
+  picomPackage = nixGL pkgs.picom;
+in
 {
+  home.file.".local/bin/ripper-picom-start" = {
+    text = ''
+      #!${pkgs.runtimeShell}
+      set -eu
+
+      runtime_dir="''${XDG_RUNTIME_DIR:-/tmp/ripper-runtime-$UID}"
+      mkdir -p "$runtime_dir"
+      log="$runtime_dir/ripper-picom.log"
+
+      ${pkgs.procps}/bin/pkill -u "''${USER:-$(${pkgs.coreutils}/bin/id -un)}" -x picom 2>/dev/null || true
+
+      exec ${picomPackage}/bin/picom --config "$HOME/.config/picom/picom.conf" >>"$log" 2>&1
+    '';
+    executable = true;
+  };
+
   services.picom = {
     enable = true;
-    #backend = "glx";
-    backend = "xrender";
+    package = picomPackage;
+    backend = "glx";
 
-    extraArgs = [
-      "--xrender-sync-fence false"  # Desactiva xrender-sync-fence
-      "--use-damage false"  # Desactiva el uso de damage
-    ];
-
-    fade = true;
-    fadeDelta = 2;
-    fadeSteps = [ 0.12 0.12 ];
+    fade = false;
 
     settings = {
-      corner-radius = 8;
+      corner-radius = 10;
       rounded-corners-exclude = [
         "window_type = 'dock'"
         "window_type = 'desktop'"
         "class_g = 'Polybar'"
       ];
+      use-damage = true;
+      unredir-if-possible = true;
       shadow = true;
-      shadow-radius = 10;
-      shadow-offset-x = -4;
-      shadow-offset-y = -4;
-      shadow-opacity = 0.35;
+      shadow-radius = 8;
+      shadow-offset-x = -3;
+      shadow-offset-y = -3;
+      shadow-opacity = 0.25;
       shadow-exclude = [
         "window_type = 'dock'"
         "window_type = 'desktop'"
@@ -35,8 +50,6 @@
     };
 
     opacityRules = [
-      "95:class_g = 'kitty' && focused"
-      "70:class_g = 'kitty' && !focused"
       "70:class_i = 'presel_feedback'"
     ];
   };

@@ -40,7 +40,10 @@ in {
       enabled_layouts = "grid";
       tab_bar_style = "powerline";
       tab_powerline_style = "round";
-      background_opacity = 0.7;
+      background_opacity = 1.0;
+      input_delay = 0;
+      repaint_delay = 2;
+      sync_to_monitor = "no";
       shell = "${pkgs.zsh}/bin/zsh";
       term = "xterm-256color";
     };

@@ -22,6 +22,6 @@ in
   imports = [
     (import ./x { inherit config pkgs lib logoutScript; })
     (import ./programs { inherit config pkgs lib unstable env nixGLCommand; })
-    (import ./services { inherit config pkgs logoutScript; })
+    (import ./services { inherit config pkgs logoutScript nixGLCommand; })
   ];
 }
