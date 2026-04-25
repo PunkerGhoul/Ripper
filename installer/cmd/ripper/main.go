@@ -45,26 +45,26 @@ func run(args []string) error {
 			return err
 		}
 		printDoctor(cfg)
-		if err := ensureDisplayManager(cfg, false); err != nil {
+		if err := ensureLoginShell(cfg, false); err != nil {
 			return err
 		}
 		if err := ensureI3lockPam(cfg, false); err != nil {
 			return err
 		}
-		return ensureLoginShell(cfg, false)
+		return ensureDisplayManager(cfg, false)
 	case "switch", "apply":
 		cfg, err := ensureInstallConfig()
 		if err != nil {
 			return err
 		}
 		printDoctor(cfg)
-		if err := ensureDisplayManager(cfg, true); err != nil {
-			return err
-		}
 		if err := ensureLoginShell(cfg, true); err != nil {
 			return err
 		}
 		if err := ensureI3lockPam(cfg, true); err != nil {
+			return err
+		}
+		if err := ensureDisplayManager(cfg, true); err != nil {
 			return err
 		}
 		return runHomeManager()
@@ -265,6 +265,9 @@ func ensureDisplayManager(cfg installConfig, apply bool) error {
 	if err := ensureRipperSession(apply); err != nil {
 		return err
 	}
+	if err := ensureSddmConfig(cfg, apply); err != nil {
+		return err
+	}
 	return ensureSddmEnabled(apply)
 }
 
@@ -360,6 +363,52 @@ DesktopNames=i3;Ripper
 		return err
 	}
 	return writeRootFile(desktopPath, desktop, "0644")
+}
+
+func ensureSddmConfig(cfg installConfig, apply bool) error {
+	const configPath = "/etc/sddm.conf.d/10-ripper.conf"
+	config := fmt.Sprintf(`[General]
+DisplayServer=x11
+
+[Users]
+MinimumUid=1000
+MaximumUid=29999
+HideShells=/usr/sbin/nologin,/usr/bin/nologin,/sbin/nologin,/bin/false
+HideUsers=%s
+RememberLastUser=false
+RememberLastSession=true
+`, strings.Join(sddmHiddenUsers(cfg.Username), ","))
+
+	if fileHasContent(configPath, config) {
+		fmt.Println("SDDM user filter already configured:", configPath)
+		return nil
+	}
+	if !apply {
+		fmt.Println("SDDM user filter would be written:", configPath)
+		return nil
+	}
+	return writeRootFile(configPath, config, "0644")
+}
+
+func sddmHiddenUsers(loginUser string) []string {
+	hidden := []string{"root", "nobody"}
+	data, err := os.ReadFile("/etc/passwd")
+	if err == nil {
+		for _, line := range strings.Split(string(data), "\n") {
+			fields := strings.Split(line, ":")
+			if len(fields) < 3 {
+				continue
+			}
+			name := fields[0]
+			if name == "" || name == loginUser {
+				continue
+			}
+			if strings.HasPrefix(name, "nixbld") {
+				hidden = append(hidden, name)
+			}
+		}
+	}
+	return uniqueStrings(hidden)
 }
 
 func ensureSddmEnabled(apply bool) error {
@@ -509,6 +558,19 @@ func missingHostPaths(paths ...string) []string {
 func fileHasContent(path string, expected string) bool {
 	current, err := os.ReadFile(path)
 	return err == nil && strings.TrimSpace(string(current)) == strings.TrimSpace(expected)
+}
+
+func uniqueStrings(values []string) []string {
+	seen := map[string]bool{}
+	result := []string{}
+	for _, value := range values {
+		if value == "" || seen[value] {
+			continue
+		}
+		seen[value] = true
+		result = append(result, value)
+	}
+	return result
 }
 
 func writeRootFile(path string, content string, mode string) error {
