@@ -96,6 +96,7 @@ let
     fi
 
     pid_file="$runtime_dir/ripper-session.pid"
+    wm_pid_file="$runtime_dir/ripper-session.i3.pid"
     children_file="$runtime_dir/ripper-session.children"
     user_name="''${USER:-}"
     : > "$children_file"
@@ -121,8 +122,18 @@ let
         ${pkgs.procps}/bin/pkill -u "$user_name" -x vmware-user 2>/dev/null || true
       fi
 
-      if [ -n "''${wm_pid:-}" ]; then
-        kill "$wm_pid" 2>/dev/null || true
+      if [ -n "''${wm_pid:-}" ] && kill -0 "$wm_pid" 2>/dev/null; then
+        ${pkgs.i3}/bin/i3-msg exit >/dev/null 2>&1 || true
+        for _ in 1 2 3 4 5 6 7 8 9 10; do
+          kill -0 "$wm_pid" 2>/dev/null || break
+          ${pkgs.coreutils}/bin/sleep 0.05
+        done
+        kill -TERM "$wm_pid" 2>/dev/null || true
+        for _ in 1 2 3 4 5 6 7 8 9 10; do
+          kill -0 "$wm_pid" 2>/dev/null || break
+          ${pkgs.coreutils}/bin/sleep 0.05
+        done
+        kill -KILL "$wm_pid" 2>/dev/null || true
       fi
 
       if [ -r "$children_file" ]; then
@@ -134,7 +145,7 @@ let
         done < "$children_file"
       fi
 
-      rm -f "$pid_file" "$children_file"
+      rm -f "$pid_file" "$wm_pid_file" "$children_file"
     }
 
     terminate() {
@@ -156,6 +167,7 @@ let
 
     ${pkgs.i3}/bin/i3 -c "$HOME/.config/i3/config" &
     wm_pid="$!"
+    echo "$wm_pid" > "$wm_pid_file"
 
     ${pkgs.feh}/bin/feh --bg-center --geometry 1920x1080 "$HOME/Pictures/Wallpapers/cyberpunk.jpg" >/dev/null 2>&1 || true
 
