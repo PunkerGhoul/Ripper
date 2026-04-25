@@ -54,12 +54,29 @@ let
 in
   {
   xdg.enable = true;
+  xdg.mimeApps = {
+    enable = true;
+    associations.added = {
+      "application/xhtml+xml" = [ "librewolf-pentesting.desktop" ];
+      "text/html" = [ "librewolf-pentesting.desktop" ];
+      "text/xml" = [ "librewolf-pentesting.desktop" ];
+      "x-scheme-handler/http" = [ "librewolf-pentesting.desktop" ];
+      "x-scheme-handler/https" = [ "librewolf-pentesting.desktop" ];
+    };
+    defaultApplications = {
+      "application/xhtml+xml" = [ "librewolf-pentesting.desktop" ];
+      "text/html" = [ "librewolf-pentesting.desktop" ];
+      "text/xml" = [ "librewolf-pentesting.desktop" ];
+      "x-scheme-handler/http" = [ "librewolf-pentesting.desktop" ];
+      "x-scheme-handler/https" = [ "librewolf-pentesting.desktop" ];
+    };
+  };
   xdg.desktopEntries = {
     librewolf-personal = {
       name = "LibreWolf Personal";
       genericName = "Web Browser";
       comment = "LibreWolf with the Personal profile";
-      exec = "${pkgs.librewolf}/bin/librewolf -P Personal";
+      exec = "${pkgs.librewolf}/bin/librewolf -P Personal %U";
       icon = "librewolf";
       terminal = false;
       categories = [ "Network" "WebBrowser" ];
@@ -70,7 +87,7 @@ in
       name = "LibreWolf Pentesting";
       genericName = "Web Browser";
       comment = "LibreWolf with the Pentesting profile";
-      exec = "${pkgs.librewolf}/bin/librewolf -P Pentesting";
+      exec = "${pkgs.librewolf}/bin/librewolf -P Pentesting %U";
       icon = "librewolf";
       terminal = false;
       categories = [ "Network" "WebBrowser" "Security" ];

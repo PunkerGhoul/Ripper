@@ -14,8 +14,6 @@ let
       ${pkgs.procps}/bin/pkill -u "$user_name" -x flameshot 2>/dev/null || true
     fi
 
-    ${pkgs.i3}/bin/i3-msg exit >/dev/null 2>&1 || true
-
     loginctl_bin=
     for candidate in /usr/bin/loginctl /bin/loginctl ${pkgs.systemd}/bin/loginctl; do
       if [ -x "$candidate" ]; then
@@ -25,8 +23,10 @@ let
     done
 
     if [ -n "$session_id" ] && [ -n "$loginctl_bin" ]; then
-      "$loginctl_bin" terminate-session "$session_id" >/dev/null 2>&1 || true
+      "$loginctl_bin" kill-session "$session_id" >/dev/null 2>&1 || true
     fi
+
+    ${pkgs.i3}/bin/i3-msg exit >/dev/null 2>&1 || true
 
     if [ -n "$user_name" ]; then
       for _ in 1 2 3 4 5 6 7 8; do

@@ -48,7 +48,7 @@ in {
       enabled_layouts = "grid";
       tab_bar_style = "powerline";
       tab_powerline_style = "round";
-      background_opacity = 1.0;
+      background_opacity = 0.7;
       input_delay = 0;
       repaint_delay = 2;
       resize_debounce_time = "0 0";

@@ -201,6 +201,7 @@ in {
       keybindings = lib.mkForce {
         # Menu
         "${modifier}+d" = "exec --no-startup-id ${rofiLauncher}";
+        "${modifier}+b" = "exec --no-startup-id ${pkgs.librewolf}/bin/librewolf -P Pentesting";
         "${modifier}+Return" = "exec --no-startup-id ${kittyLauncher}";
         "XF86AudioRaiseVolume" = "exec --no-startup-id ${pkgs.pamixer}/bin/pamixer --allow-boost --increase 5";
         "XF86AudioLowerVolume" = "exec --no-startup-id ${pkgs.pamixer}/bin/pamixer --decrease 5";
