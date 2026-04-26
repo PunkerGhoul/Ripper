@@ -176,20 +176,20 @@ else
   echo "Nix open-vm-tools does not include vmware-user-suid-wrapper; vmtoolsd -n vmusr will be used for the X session."
 fi
 
-vmtools_unit=/etc/systemd/system/ripper-vmtoolsd.service
+vmtools_unit=/etc/systemd/system/vmtoolsd.service
 tmp_vmtools_unit="$(/usr/bin/mktemp)"
 /usr/bin/cat > "$tmp_vmtools_unit" <<EOF
 [Unit]
-Description=Ripper VMware Guest Service (Nix open-vm-tools)
+Description=VMware Tools Daemon (Nix open-vm-tools managed by Ripper)
 Documentation=https://github.com/vmware/open-vm-tools
 ConditionVirtualization=vmware
-Wants=systemd-modules-load.service ripper-vmblock-fuse.service
-After=systemd-modules-load.service systemd-udevd.service ripper-vmblock-fuse.service
+Wants=systemd-modules-load.service vmware-vmblock-fuse.service
+After=systemd-modules-load.service systemd-udevd.service vmware-vmblock-fuse.service
 
 [Service]
 Type=simple
 ExecStartPre=$vmwgfx_prestart
-ExecStart=$vmtoolsd
+ExecStart=$vmtoolsd -c $tools_conf
 Restart=always
 RestartSec=1
 
@@ -201,7 +201,7 @@ EOF
 /usr/bin/rm -f "$tmp_vmtools_unit"
 echo "Configured $vmtools_unit."
 
-vmblock_unit=/etc/systemd/system/ripper-vmblock-fuse.service
+vmblock_unit=/etc/systemd/system/vmware-vmblock-fuse.service
 if [ -x "$vmware_vmblock_fuse" ]; then
   tmp_vmblock_unit="$(/usr/bin/mktemp)"
   /usr/bin/cat > "$tmp_vmblock_unit" <<EOF
@@ -209,7 +209,7 @@ if [ -x "$vmware_vmblock_fuse" ]; then
 Description=Ripper VMware vmblock FUSE service
 Documentation=https://github.com/vmware/open-vm-tools/blob/master/open-vm-tools/vmblock-fuse/design.txt
 ConditionVirtualization=vmware
-Before=ripper-vmtoolsd.service
+Before=vmtoolsd.service
 
 [Service]
 Type=forking
@@ -231,22 +231,31 @@ unit_exists() {
   "$systemctl_bin" list-unit-files "$1" 2>/dev/null | {{gnuGrep}}/bin/grep -q "^$1"
 }
 
-for svc in open-vm-tools.service vmtoolsd.service vmware.service; do
+for svc in ripper-vmtoolsd.service ripper-vmblock-fuse.service open-vm-tools.service vmware.service; do
   if unit_exists "$svc"; then
     "$sudo_bin" "$systemctl_bin" disable --now "$svc" 2>/dev/null \
       || echo "WARNING: could not disable distro VMware service $svc"
   fi
 done
 
+"$sudo_bin" /usr/bin/rm -f \
+  /etc/systemd/system/ripper-vmtoolsd.service \
+  /etc/systemd/system/ripper-vmblock-fuse.service \
+  /etc/systemd/system/vmtoolsd.service.d/10-ripper-vmwgfx.conf \
+  /etc/systemd/system/open-vm-tools.service.d/10-ripper-vmwgfx.conf
+"$sudo_bin" /usr/bin/rm -rf \
+  /etc/systemd/system/ripper-vmtoolsd.service.d \
+  /etc/systemd/system/ripper-vmblock-fuse.service.d
+
 "$sudo_bin" "$systemctl_bin" daemon-reload
 
 if [ -x "$vmware_vmblock_fuse" ]; then
-  "$sudo_bin" "$systemctl_bin" enable --now ripper-vmblock-fuse.service 2>/dev/null \
-    || echo "WARNING: could not enable ripper-vmblock-fuse.service"
+  "$sudo_bin" "$systemctl_bin" enable --now vmware-vmblock-fuse.service 2>/dev/null \
+    || echo "WARNING: could not enable vmware-vmblock-fuse.service"
 fi
 
-"$sudo_bin" "$systemctl_bin" enable --now ripper-vmtoolsd.service
-"$sudo_bin" "$systemctl_bin" restart ripper-vmtoolsd.service
+"$sudo_bin" "$systemctl_bin" enable --now vmtoolsd.service
+"$sudo_bin" "$systemctl_bin" restart vmtoolsd.service
 
 if [ ! -d /sys/module/vmwgfx ]; then
   "$sudo_bin" "$vmwgfx_prestart" || true
@@ -265,13 +274,13 @@ else
   echo "Nix open-vm-tools resolution plugin is installed."
 fi
 
-if "$systemctl_bin" is-active --quiet ripper-vmtoolsd.service; then
-  echo "ripper-vmtoolsd.service is active."
+if "$systemctl_bin" is-active --quiet vmtoolsd.service; then
+  echo "vmtoolsd.service is active."
 else
-  check_failed "ripper-vmtoolsd.service is not active."
-  "$systemctl_bin" --no-pager --full status ripper-vmtoolsd.service 2>/dev/null || true
-  "$systemctl_bin" --no-pager --full status ripper-vmblock-fuse.service 2>/dev/null || true
-  /usr/bin/journalctl --no-pager -u ripper-vmtoolsd.service -n 120 2>/dev/null || true
+  check_failed "vmtoolsd.service is not active."
+  "$systemctl_bin" --no-pager --full status vmtoolsd.service 2>/dev/null || true
+  "$systemctl_bin" --no-pager --full status vmware-vmblock-fuse.service 2>/dev/null || true
+  /usr/bin/journalctl --no-pager -u vmtoolsd.service -n 120 2>/dev/null || true
 fi
 
 if [ ! -x "$setuid_wrapper" ] && [ ! -x "$vmtoolsd" ]; then

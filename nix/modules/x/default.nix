@@ -87,13 +87,13 @@ let
     fi
 
     if [ -x ${pkgs.open-vm-tools}/bin/vmtoolsd ]; then
-      echo "ripper-vmware-user: exec ${pkgs.open-vm-tools}/bin/vmtoolsd -n vmusr"
-      exec ${pkgs.open-vm-tools}/bin/vmtoolsd -n vmusr
+      echo "ripper-vmware-user: exec ${pkgs.open-vm-tools}/bin/vmtoolsd -n vmusr -c /etc/vmware-tools/tools.conf"
+      exec ${pkgs.open-vm-tools}/bin/vmtoolsd -n vmusr -c /etc/vmware-tools/tools.conf
     fi
 
     if [ -x /usr/bin/vmtoolsd ]; then
-      echo "ripper-vmware-user: exec /usr/bin/vmtoolsd -n vmusr"
-      exec /usr/bin/vmtoolsd -n vmusr
+      echo "ripper-vmware-user: exec /usr/bin/vmtoolsd -n vmusr -c /etc/vmware-tools/tools.conf"
+      exec /usr/bin/vmtoolsd -n vmusr -c /etc/vmware-tools/tools.conf
     fi
 
     if [ -x /usr/bin/vmware-user ]; then
