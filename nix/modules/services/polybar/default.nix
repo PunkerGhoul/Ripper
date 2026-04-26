@@ -27,7 +27,9 @@ let
   polybarTheme  = import ./polybar-themes   { inherit pkgs theme polybarPackage; logoutScript = resolvedLogoutScript; };
   polybarStartScript = ''
     #!${pkgs.runtimeShell}
-    runtime_dir="''${XDG_RUNTIME_DIR:-/tmp}"
+    runtime_dir="''${XDG_RUNTIME_DIR:-/tmp/ripper-runtime-$UID}"
+    mkdir -p "$runtime_dir"
+    chmod 700 "$runtime_dir" 2>/dev/null || true
     log="$runtime_dir/ripper-polybar.log"
     config="$HOME/.config/polybar/${theme}/config.ini"
 
@@ -36,6 +38,12 @@ let
 
       if [ -z "''${DISPLAY:-}" ]; then
         echo "DISPLAY is not set"
+        exit 0
+      fi
+
+      exec 9>"$runtime_dir/ripper-polybar-start.lock"
+      if ! ${pkgs.util-linux}/bin/flock -n 9; then
+        echo "polybar start already running"
         exit 0
       fi
 
