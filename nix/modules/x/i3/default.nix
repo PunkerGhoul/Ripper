@@ -133,6 +133,10 @@ let
 
     [ -x /usr/bin/vmware-user ] && /usr/bin/vmware-user >/dev/null 2>&1 &
 
+    if [ -x "$HOME/.local/bin/ripper-vmware-auto-resize" ]; then
+      "$HOME/.local/bin/ripper-vmware-auto-resize" >/dev/null 2>&1 &
+    fi
+
     ${pkgs.dunst}/bin/dunst -config "$HOME/.config/dunst/dunstrc" >/dev/null 2>&1 &
     command -v flameshot >/dev/null 2>&1 && flameshot >/dev/null 2>&1 &
     ${pkgs.numlockx}/bin/numlockx on >/dev/null 2>&1 || true
