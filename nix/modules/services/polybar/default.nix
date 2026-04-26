@@ -16,7 +16,7 @@ let
   };
 
   featherFont   = import ./feather-font.nix { inherit pkgs; };
-  polybarReload = import ./polybar-reload   { inherit pkgs polybarPackage; };
+  polybarReload = import ./polybar-reload { inherit pkgs; };
   resolvedLogoutScript =
     if logoutScript != null then
       logoutScript
@@ -105,7 +105,7 @@ let
     fi
 
     echo "ripper-polybar-resize-watch: start $(${pkgs.coreutils}/bin/date) DISPLAY=''${DISPLAY:-unset}"
-    exec ${polybarReload}/bin/polybar-reload "$HOME/.local/bin/ripper-polybar-start"
+    exec ${polybarReload}/bin/polybar-reload
   '';
 in
 {

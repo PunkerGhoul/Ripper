@@ -1,10 +1,8 @@
-{ pkgs, polybarPackage }:
+{ pkgs }:
 
 pkgs.runCommandCC "polybar-reload" { } ''
   mkdir -p $out/bin
-  $CC ${pkgs.replaceVars ./polybar-reload.c {
-    polybarMsg = "${polybarPackage}/bin/polybar-msg";
-  }} \
+  $CC ${./polybar-reload.c} \
     -I${pkgs.xorgproto}/include \
     -I${pkgs.libX11.dev}/include \
     -I${pkgs.libXrender.dev}/include \
