@@ -132,14 +132,6 @@ let
     [ -x /usr/lib/policykit-1-gnome/polkit-gnome-authentication-agent-1 ] \
       && /usr/lib/policykit-1-gnome/polkit-gnome-authentication-agent-1 >/dev/null 2>&1 &
 
-    if [ -x "$HOME/.local/bin/ripper-vmware-user" ]; then
-      "$HOME/.local/bin/ripper-vmware-user" >/dev/null 2>&1 &
-    fi
-
-    if [ -x "$HOME/.local/bin/ripper-vmware-auto-resize" ]; then
-      "$HOME/.local/bin/ripper-vmware-auto-resize" >/dev/null 2>&1 &
-    fi
-
     ${pkgs.dunst}/bin/dunst -config "$HOME/.config/dunst/dunstrc" >/dev/null 2>&1 &
     command -v flameshot >/dev/null 2>&1 && flameshot >/dev/null 2>&1 &
     ${pkgs.numlockx}/bin/numlockx on >/dev/null 2>&1 || true
@@ -199,6 +191,16 @@ in {
         outer = 4;
       };
       startup = [
+        {
+          command = "$HOME/.local/bin/ripper-vmware-user";
+          notification = false;
+          always = true;
+        }
+        {
+          command = "$HOME/.local/bin/ripper-vmware-auto-resize";
+          notification = false;
+          always = true;
+        }
         {
           command = "$HOME/.local/bin/ripper-polybar-start";
           notification = false;

@@ -69,6 +69,10 @@ if [ ! -x "$vmware_rpctool" ]; then
   check_failed "Nix open-vm-tools does not provide vmware-rpctool at $vmware_rpctool"
 fi
 
+if [ ! -x "$vmware_vmblock_fuse" ]; then
+  check_failed "Nix open-vm-tools does not provide vmware-vmblock-fuse at $vmware_vmblock_fuse"
+fi
+
 if [ "$failures" -gt 0 ]; then
   echo "VMware tools verification failed before system setup." >&2
   exit 1
@@ -213,6 +217,9 @@ else
   echo "Nix open-vm-tools does not include vmware-user-suid-wrapper; vmtoolsd -n vmusr will be used for the X session."
 fi
 
+vmblock_mount_unit='run-vmblock\x2dfuse.mount'
+vmblock_dependency=" $vmblock_mount_unit"
+
 vmtools_unit=/etc/systemd/system/vmtoolsd.service
 tmp_vmtools_unit="$(/usr/bin/mktemp)"
 /usr/bin/cat > "$tmp_vmtools_unit" <<EOF
@@ -220,8 +227,8 @@ tmp_vmtools_unit="$(/usr/bin/mktemp)"
 Description=VMware Tools Daemon (Nix open-vm-tools managed by Ripper)
 Documentation=https://github.com/vmware/open-vm-tools
 ConditionVirtualization=vmware
-Wants=systemd-modules-load.service vmware-vmblock-fuse.service
-After=systemd-modules-load.service systemd-udevd.service vmware-vmblock-fuse.service
+Wants=systemd-modules-load.service$vmblock_dependency
+After=systemd-modules-load.service systemd-udevd.service display-manager.service sddm.service lightdm.service gdm.service$vmblock_dependency
 
 [Service]
 Type=simple
@@ -238,23 +245,21 @@ EOF
 /usr/bin/rm -f "$tmp_vmtools_unit"
 echo "Configured $vmtools_unit."
 
-vmblock_unit=/etc/systemd/system/vmware-vmblock-fuse.service
+vmblock_unit="/etc/systemd/system/$vmblock_mount_unit"
 if [ -x "$vmware_vmblock_fuse" ]; then
   tmp_vmblock_unit="$(/usr/bin/mktemp)"
   /usr/bin/cat > "$tmp_vmblock_unit" <<EOF
 [Unit]
-Description=Ripper VMware vmblock FUSE service
+Description=Ripper VMware vmblock FUSE mount
 Documentation=https://github.com/vmware/open-vm-tools/blob/master/open-vm-tools/vmblock-fuse/design.txt
 ConditionVirtualization=vmware
 Before=vmtoolsd.service
 
-[Service]
-Type=forking
-RuntimeDirectory=vmblock-fuse
-RuntimeDirectoryMode=755
-ExecStart=$vmware_vmblock_fuse -o subtype=vmware-vmblock,default_permissions,allow_other /run/vmblock-fuse
-Restart=on-failure
-RestartSec=1
+[Mount]
+What=$vmware_vmblock_fuse
+Where=/run/vmblock-fuse
+Type=fuse
+Options=subtype=vmware-vmblock,default_permissions,allow_other
 
 [Install]
 WantedBy=multi-user.target
@@ -268,7 +273,7 @@ unit_exists() {
   "$systemctl_bin" list-unit-files "$1" 2>/dev/null | {{gnuGrep}}/bin/grep -q "^$1"
 }
 
-for svc in ripper-vmtoolsd.service ripper-vmblock-fuse.service open-vm-tools.service vmware.service; do
+for svc in ripper-vmtoolsd.service ripper-vmblock-fuse.service vmware-vmblock-fuse.service open-vm-tools.service vmware.service; do
   if unit_exists "$svc"; then
     "$sudo_bin" "$systemctl_bin" disable --now "$svc" 2>/dev/null \
       || echo "WARNING: could not disable distro VMware service $svc"
@@ -278,6 +283,7 @@ done
 "$sudo_bin" /usr/bin/rm -f \
   /etc/systemd/system/ripper-vmtoolsd.service \
   /etc/systemd/system/ripper-vmblock-fuse.service \
+  /etc/systemd/system/vmware-vmblock-fuse.service \
   /etc/systemd/system/vmtoolsd.service.d/10-ripper-vmwgfx.conf \
   /etc/systemd/system/open-vm-tools.service.d/10-ripper-vmwgfx.conf
 "$sudo_bin" /usr/bin/rm -rf \
@@ -287,8 +293,9 @@ done
 "$sudo_bin" "$systemctl_bin" daemon-reload
 
 if [ -x "$vmware_vmblock_fuse" ]; then
-  "$sudo_bin" "$systemctl_bin" enable --now vmware-vmblock-fuse.service 2>/dev/null \
-    || echo "WARNING: could not enable vmware-vmblock-fuse.service"
+  "$sudo_bin" /usr/bin/mkdir -p /run/vmblock-fuse
+  "$sudo_bin" "$systemctl_bin" enable --now "$vmblock_mount_unit" \
+    || check_failed "could not enable $vmblock_mount_unit; VMware clipboard and drag-and-drop need vmblock."
 fi
 
 "$sudo_bin" "$systemctl_bin" enable --now vmtoolsd.service
@@ -316,8 +323,17 @@ if "$systemctl_bin" is-active --quiet vmtoolsd.service; then
 else
   check_failed "vmtoolsd.service is not active."
   "$systemctl_bin" --no-pager --full status vmtoolsd.service 2>/dev/null || true
-  "$systemctl_bin" --no-pager --full status vmware-vmblock-fuse.service 2>/dev/null || true
   /usr/bin/journalctl --no-pager -u vmtoolsd.service -n 120 2>/dev/null || true
+fi
+
+if [ -x "$vmware_vmblock_fuse" ]; then
+  if "$systemctl_bin" is-active --quiet "$vmblock_mount_unit"; then
+    echo "$vmblock_mount_unit is active."
+  else
+    check_failed "$vmblock_mount_unit is not active; VMware clipboard and drag-and-drop cannot work."
+    "$systemctl_bin" --no-pager --full status "$vmblock_mount_unit" 2>/dev/null || true
+    /usr/bin/journalctl --no-pager -u "$vmblock_mount_unit" -n 120 2>/dev/null || true
+  fi
 fi
 
 if [ ! -x "$setuid_wrapper" ] && [ ! -x "$vmtoolsd" ]; then

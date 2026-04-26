@@ -81,9 +81,32 @@ let
 
     echo "ripper-vmware-user: start $(${pkgs.coreutils}/bin/date) DISPLAY=''${DISPLAY:-unset} XAUTHORITY=''${XAUTHORITY:-unset}"
 
+    user_id="$(${pkgs.coreutils}/bin/id -u)"
+    vmusr_running() {
+      ${pkgs.procps}/bin/pgrep -u "$user_id" -x vmtoolsd >/dev/null 2>&1 \
+        || ${pkgs.procps}/bin/pgrep -u "$user_id" -x vmware-user >/dev/null 2>&1
+    }
+
+    if vmusr_running; then
+      echo "ripper-vmware-user: vmusr process already exists"
+      exit 0
+    fi
+
     if [ -x /usr/local/libexec/ripper-vmware-user-suid-wrapper ]; then
-      echo "ripper-vmware-user: exec /usr/local/libexec/ripper-vmware-user-suid-wrapper"
-      exec /usr/local/libexec/ripper-vmware-user-suid-wrapper
+      echo "ripper-vmware-user: try /usr/local/libexec/ripper-vmware-user-suid-wrapper"
+      if /usr/local/libexec/ripper-vmware-user-suid-wrapper; then
+        status=0
+      else
+        status="$?"
+      fi
+      echo "ripper-vmware-user: wrapper exited with status $status"
+
+      if vmusr_running; then
+        echo "ripper-vmware-user: wrapper started vmusr integration"
+        exit 0
+      fi
+
+      echo "ripper-vmware-user: wrapper did not leave vmusr running; falling back to direct vmtoolsd"
     fi
 
     if [ -x ${pkgs.open-vm-tools}/bin/vmtoolsd ]; then
