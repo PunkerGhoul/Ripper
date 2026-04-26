@@ -76,11 +76,21 @@ fi
 
 tools_dir=/etc/vmware-tools
 tools_conf="$tools_dir/tools.conf"
+powerops_noop="$tools_dir/ripper-powerop-noop"
 nix_tools_conf="$open_vm_tools/etc/vmware-tools/tools.conf"
 nix_tools_conf_example="$open_vm_tools/etc/vmware-tools/tools.conf.example"
 tmp_tools_conf="$(/usr/bin/mktemp)"
 
 "$sudo_bin" /usr/bin/mkdir -p "$tools_dir"
+tmp_powerops_noop="$(/usr/bin/mktemp)"
+/usr/bin/cat > "$tmp_powerops_noop" <<'EOF'
+#!/bin/sh
+# Managed by Ripper. VMware power operation hook intentionally does nothing.
+exit 0
+EOF
+"$sudo_bin" /usr/bin/install -m 0755 "$tmp_powerops_noop" "$powerops_noop"
+/usr/bin/rm -f "$tmp_powerops_noop"
+
 if [ ! -f "$tools_conf" ]; then
   if [ -f "$nix_tools_conf" ]; then
     "$sudo_bin" /usr/bin/cp "$nix_tools_conf" "$tools_conf"
@@ -92,40 +102,67 @@ fi
 if [ -f "$tools_conf" ]; then
   /usr/bin/awk '
     BEGIN {
-      in_section = 0
-      seen_section = 0
+      in_resolution = 0
+      in_powerops = 0
+      seen_resolution = 0
+      seen_powerops = 0
     }
     /^\[resolutionKMS\]$/ {
       print
       print "enable=true"
-      in_section = 1
-      seen_section = 1
+      in_resolution = 1
+      in_powerops = 0
+      seen_resolution = 1
+      next
+    }
+    /^\[powerops\]$/ {
+      print
+      print "poweron-script='"$powerops_noop"'"
+      print "poweroff-script='"$powerops_noop"'"
+      print "resume-script='"$powerops_noop"'"
+      print "suspend-script='"$powerops_noop"'"
+      in_resolution = 0
+      in_powerops = 1
+      seen_powerops = 1
       next
     }
     /^\[/ {
-      in_section = 0
+      in_resolution = 0
+      in_powerops = 0
     }
-    in_section && /^[[:space:]]*#?[[:space:]]*enable[[:space:]]*=/ {
+    in_resolution && /^[[:space:]]*#?[[:space:]]*enable[[:space:]]*=/ {
+      next
+    }
+    in_powerops && /^[[:space:]]*#?[[:space:]]*(poweron|poweroff|resume|suspend)-script[[:space:]]*=/ {
       next
     }
     {
       print
     }
     END {
-      if (!seen_section) {
+      if (!seen_resolution) {
         print ""
         print "[resolutionKMS]"
         print "enable=true"
       }
+      if (!seen_powerops) {
+        print ""
+        print "[powerops]"
+        print "poweron-script='"$powerops_noop"'"
+        print "poweroff-script='"$powerops_noop"'"
+        print "resume-script='"$powerops_noop"'"
+        print "suspend-script='"$powerops_noop"'"
+      }
     }
   ' "$tools_conf" > "$tmp_tools_conf"
 else
-  /usr/bin/printf "[resolutionKMS]\nenable=true\n" > "$tmp_tools_conf"
+  /usr/bin/printf "[resolutionKMS]\nenable=true\n\n[powerops]\npoweron-script=%s\npoweroff-script=%s\nresume-script=%s\nsuspend-script=%s\n" \
+    "$powerops_noop" "$powerops_noop" "$powerops_noop" "$powerops_noop" > "$tmp_tools_conf"
 fi
 
 "$sudo_bin" /usr/bin/install -m 0644 "$tmp_tools_conf" "$tools_conf"
 /usr/bin/rm -f "$tmp_tools_conf"
-echo "Configured $tools_conf with resolutionKMS enabled."
+echo "Configured $tools_conf with resolutionKMS enabled and no-op VMware power scripts."
 
 vmwgfx_prestart=/usr/local/libexec/ripper-vmwgfx-prestart
 tmp_vmwgfx_prestart="$(/usr/bin/mktemp)"
