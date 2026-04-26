@@ -81,9 +81,14 @@ let
 
     echo "ripper-vmware-user: start $(${pkgs.coreutils}/bin/date) DISPLAY=''${DISPLAY:-unset} XAUTHORITY=''${XAUTHORITY:-unset}"
 
-    if [ -x /usr/bin/vmware-user-suid-wrapper ]; then
-      echo "ripper-vmware-user: exec /usr/bin/vmware-user-suid-wrapper"
-      exec /usr/bin/vmware-user-suid-wrapper
+    if [ -x /usr/local/libexec/ripper-vmware-user-suid-wrapper ]; then
+      echo "ripper-vmware-user: exec /usr/local/libexec/ripper-vmware-user-suid-wrapper"
+      exec /usr/local/libexec/ripper-vmware-user-suid-wrapper
+    fi
+
+    if [ -x ${pkgs.open-vm-tools}/bin/vmtoolsd ]; then
+      echo "ripper-vmware-user: exec ${pkgs.open-vm-tools}/bin/vmtoolsd -n vmusr"
+      exec ${pkgs.open-vm-tools}/bin/vmtoolsd -n vmusr
     fi
 
     if [ -x /usr/bin/vmtoolsd ]; then
@@ -103,8 +108,8 @@ in
 {
   home.activation.install-vmware-tools = lib.hm.dag.entryAfter [ "writeBoundary" ]
     (builtins.replaceStrings
-      [ "{{gnuGrep}}" "{{systemd}}" "{{pciUtils}}" ]
-      [ "${pkgs.gnugrep}" "${pkgs.systemd}" "${pkgs.pciutils}" ]
+      [ "{{gnuGrep}}" "{{systemd}}" "{{pciUtils}}" "{{openVmTools}}" ]
+      [ "${pkgs.gnugrep}" "${pkgs.systemd}" "${pkgs.pciutils}" "${pkgs.open-vm-tools}" ]
       (builtins.readFile ./scripts/install-vmware-tools.sh));
 
   home.activation.stop-obsolete-vmware-user-units = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
@@ -139,6 +144,7 @@ in
   };
 
   home.packages = with pkgs; [
+    open-vm-tools
     pciutils    # lspci for VMware detection
     xrandr      # available in PATH for manual use
   ];

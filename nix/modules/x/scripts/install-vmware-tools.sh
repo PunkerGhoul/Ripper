@@ -25,34 +25,68 @@ fi
 
 echo "VMware environment detected."
 
-if [ -x /usr/bin/apt ]; then
-  /usr/bin/sudo /usr/bin/apt update -y
-  /usr/bin/sudo /usr/bin/apt install -y open-vm-tools open-vm-tools-desktop fuse3
-  if /usr/bin/apt-cache show xserver-xorg-video-vmware >/dev/null 2>&1; then
-    /usr/bin/sudo /usr/bin/apt install -y xserver-xorg-video-vmware
-  else
-    echo "Optional package xserver-xorg-video-vmware not found; using Xorg modesetting with vmwgfx."
+open_vm_tools="{{openVmTools}}"
+vmtoolsd="$open_vm_tools/bin/vmtoolsd"
+vmware_rpctool="$open_vm_tools/bin/vmware-rpctool"
+vmware_user_suid="$open_vm_tools/bin/vmware-user-suid-wrapper"
+vmware_vmblock_fuse="$open_vm_tools/bin/vmware-vmblock-fuse"
+
+failures=0
+
+check_failed() {
+  failures=$((failures + 1))
+  echo "ERROR: $1" >&2
+}
+
+require_host_command() {
+  name="$1"
+  shift
+  for candidate in "$@"; do
+    if [ -x "$candidate" ]; then
+      echo "$candidate"
+      return 0
+    fi
+  done
+  check_failed "host command $name not found"
+  return 1
+}
+
+sudo_bin="$(require_host_command sudo /usr/bin/sudo /bin/sudo || true)"
+systemctl_bin="$(require_host_command systemctl /usr/bin/systemctl /bin/systemctl || true)"
+modprobe_bin=""
+for candidate in /usr/bin/modprobe /sbin/modprobe /bin/modprobe; do
+  if [ -x "$candidate" ]; then
+    modprobe_bin="$candidate"
+    break
   fi
-elif [ -x /usr/bin/pacman ]; then
-  /usr/bin/sudo /usr/bin/pacman -Syu --needed --noconfirm open-vm-tools gtkmm3 libxtst fuse3
-  if /usr/bin/pacman -Si xf86-video-vmware >/dev/null 2>&1; then
-    /usr/bin/sudo /usr/bin/pacman -S --needed --noconfirm xf86-video-vmware
-  else
-    echo "Optional package xf86-video-vmware not found; using Xorg modesetting with vmwgfx."
-  fi
-else
-  echo "WARNING: No supported package manager found. Install open-vm-tools, open-vm-tools-desktop and fuse3 manually."
-  exit 0
+done
+
+if [ ! -x "$vmtoolsd" ]; then
+  check_failed "Nix open-vm-tools does not provide vmtoolsd at $vmtoolsd"
+fi
+
+if [ ! -x "$vmware_rpctool" ]; then
+  check_failed "Nix open-vm-tools does not provide vmware-rpctool at $vmware_rpctool"
+fi
+
+if [ "$failures" -gt 0 ]; then
+  echo "VMware tools verification failed before system setup." >&2
+  exit 1
 fi
 
 tools_dir=/etc/vmware-tools
 tools_conf="$tools_dir/tools.conf"
-tools_conf_example="$tools_dir/tools.conf.example"
+nix_tools_conf="$open_vm_tools/etc/vmware-tools/tools.conf"
+nix_tools_conf_example="$open_vm_tools/etc/vmware-tools/tools.conf.example"
 tmp_tools_conf="$(/usr/bin/mktemp)"
 
-/usr/bin/sudo /usr/bin/mkdir -p "$tools_dir"
-if [ ! -f "$tools_conf" ] && [ -f "$tools_conf_example" ]; then
-  /usr/bin/sudo /usr/bin/cp "$tools_conf_example" "$tools_conf"
+"$sudo_bin" /usr/bin/mkdir -p "$tools_dir"
+if [ ! -f "$tools_conf" ]; then
+  if [ -f "$nix_tools_conf" ]; then
+    "$sudo_bin" /usr/bin/cp "$nix_tools_conf" "$tools_conf"
+  elif [ -f "$nix_tools_conf_example" ]; then
+    "$sudo_bin" /usr/bin/cp "$nix_tools_conf_example" "$tools_conf"
+  fi
 fi
 
 if [ -f "$tools_conf" ]; then
@@ -89,23 +123,21 @@ else
   /usr/bin/printf "[resolutionKMS]\nenable=true\n" > "$tmp_tools_conf"
 fi
 
-/usr/bin/sudo /usr/bin/install -m 0644 "$tmp_tools_conf" "$tools_conf"
+"$sudo_bin" /usr/bin/install -m 0644 "$tmp_tools_conf" "$tools_conf"
 /usr/bin/rm -f "$tmp_tools_conf"
 echo "Configured $tools_conf with resolutionKMS enabled."
 
 vmwgfx_prestart=/usr/local/libexec/ripper-vmwgfx-prestart
 tmp_vmwgfx_prestart="$(/usr/bin/mktemp)"
-/usr/bin/cat > "$tmp_vmwgfx_prestart" <<'EOF'
+/usr/bin/cat > "$tmp_vmwgfx_prestart" <<EOF
 #!/bin/sh
 if [ -d /sys/module/vmwgfx ]; then
   exit 0
 fi
 
-for modprobe in /usr/bin/modprobe /sbin/modprobe /bin/modprobe; do
-  if [ -x "$modprobe" ]; then
-    "$modprobe" vmwgfx && exit 0
-  fi
-done
+if [ -x "$modprobe_bin" ]; then
+  "$modprobe_bin" vmwgfx && exit 0
+fi
 
 if [ -d /sys/module/vmwgfx ]; then
   exit 0
@@ -115,69 +147,109 @@ echo "ripper-vmwgfx-prestart: vmwgfx kernel module is not loaded and modprobe fa
 exit 1
 EOF
 
-/usr/bin/sudo /usr/bin/install -Dm755 "$tmp_vmwgfx_prestart" "$vmwgfx_prestart"
+"$sudo_bin" /usr/bin/install -Dm755 "$tmp_vmwgfx_prestart" "$vmwgfx_prestart"
 /usr/bin/rm -f "$tmp_vmwgfx_prestart"
 
 tmp_modules_load="$(/usr/bin/mktemp)"
-/usr/bin/printf "vmwgfx\n" > "$tmp_modules_load"
-/usr/bin/sudo /usr/bin/install -Dm644 "$tmp_modules_load" /etc/modules-load.d/ripper-vmwgfx.conf
+/usr/bin/printf "vmwgfx\nfuse\n" > "$tmp_modules_load"
+"$sudo_bin" /usr/bin/install -Dm644 "$tmp_modules_load" /etc/modules-load.d/ripper-vmwgfx.conf
 /usr/bin/rm -f "$tmp_modules_load"
 
-write_vmtools_dropin() {
-  service="$1"
-  dropin_dir="/etc/systemd/system/$service.d"
-  dropin_path="$dropin_dir/10-ripper-vmwgfx.conf"
-  tmp_dropin="$(/usr/bin/mktemp)"
-  /usr/bin/cat > "$tmp_dropin" <<EOF
+if [ -d "$open_vm_tools/lib/udev/rules.d" ]; then
+  for rule in "$open_vm_tools"/lib/udev/rules.d/*.rules; do
+    if [ -f "$rule" ]; then
+      rule_name="${rule##*/}"
+      "$sudo_bin" /usr/bin/install -Dm644 "$rule" "/etc/udev/rules.d/$rule_name"
+    fi
+  done
+  if [ -x /usr/bin/udevadm ]; then
+    "$sudo_bin" /usr/bin/udevadm control --reload-rules 2>/dev/null || true
+    "$sudo_bin" /usr/bin/udevadm trigger 2>/dev/null || true
+  fi
+fi
+
+setuid_wrapper=/usr/local/libexec/ripper-vmware-user-suid-wrapper
+if [ -x "$vmware_user_suid" ]; then
+  "$sudo_bin" /usr/bin/install -Dm4755 "$vmware_user_suid" "$setuid_wrapper"
+  echo "Configured setuid VMware user wrapper: $setuid_wrapper."
+else
+  echo "Nix open-vm-tools does not include vmware-user-suid-wrapper; vmtoolsd -n vmusr will be used for the X session."
+fi
+
+vmtools_unit=/etc/systemd/system/ripper-vmtoolsd.service
+tmp_vmtools_unit="$(/usr/bin/mktemp)"
+/usr/bin/cat > "$tmp_vmtools_unit" <<EOF
+[Unit]
+Description=Ripper VMware Guest Service (Nix open-vm-tools)
+Documentation=https://github.com/vmware/open-vm-tools
+ConditionVirtualization=vmware
+Wants=systemd-modules-load.service ripper-vmblock-fuse.service
+After=systemd-modules-load.service systemd-udevd.service ripper-vmblock-fuse.service
+
 [Service]
+Type=simple
 ExecStartPre=$vmwgfx_prestart
+ExecStart=$vmtoolsd
+Restart=always
+RestartSec=1
+
+[Install]
+WantedBy=multi-user.target
 EOF
-  /usr/bin/sudo /usr/bin/mkdir -p "$dropin_dir"
-  /usr/bin/sudo /usr/bin/install -m 0644 "$tmp_dropin" "$dropin_path"
-  /usr/bin/rm -f "$tmp_dropin"
-  echo "Configured $dropin_path."
-}
+
+"$sudo_bin" /usr/bin/install -Dm644 "$tmp_vmtools_unit" "$vmtools_unit"
+/usr/bin/rm -f "$tmp_vmtools_unit"
+echo "Configured $vmtools_unit."
+
+vmblock_unit=/etc/systemd/system/ripper-vmblock-fuse.service
+if [ -x "$vmware_vmblock_fuse" ]; then
+  tmp_vmblock_unit="$(/usr/bin/mktemp)"
+  /usr/bin/cat > "$tmp_vmblock_unit" <<EOF
+[Unit]
+Description=Ripper VMware vmblock FUSE service
+Documentation=https://github.com/vmware/open-vm-tools/blob/master/open-vm-tools/vmblock-fuse/design.txt
+ConditionVirtualization=vmware
+Before=ripper-vmtoolsd.service
+
+[Service]
+Type=forking
+RuntimeDirectory=vmblock-fuse
+RuntimeDirectoryMode=755
+ExecStart=$vmware_vmblock_fuse -o subtype=vmware-vmblock,default_permissions,allow_other /run/vmblock-fuse
+Restart=on-failure
+RestartSec=1
+
+[Install]
+WantedBy=multi-user.target
+EOF
+  "$sudo_bin" /usr/bin/install -Dm644 "$tmp_vmblock_unit" "$vmblock_unit"
+  /usr/bin/rm -f "$tmp_vmblock_unit"
+  echo "Configured $vmblock_unit."
+fi
 
 unit_exists() {
-  /usr/bin/systemctl list-unit-files "$1" 2>/dev/null | {{gnuGrep}}/bin/grep -q "^$1"
+  "$systemctl_bin" list-unit-files "$1" 2>/dev/null | {{gnuGrep}}/bin/grep -q "^$1"
 }
 
-for svc in open-vm-tools.service vmtoolsd.service; do
-  if [ -x /usr/bin/systemctl ] && unit_exists "$svc"; then
-    write_vmtools_dropin "$svc"
+for svc in open-vm-tools.service vmtoolsd.service vmware.service; do
+  if unit_exists "$svc"; then
+    "$sudo_bin" "$systemctl_bin" disable --now "$svc" 2>/dev/null \
+      || echo "WARNING: could not disable distro VMware service $svc"
   fi
 done
 
-if [ -x /usr/bin/systemctl ]; then
-  /usr/bin/sudo /usr/bin/systemctl daemon-reload
+"$sudo_bin" "$systemctl_bin" daemon-reload
 
-  for svc in vgauthd.service open-vm-tools.service vmtoolsd.service vmware-vmblock-fuse.service; do
-    if unit_exists "$svc"; then
-      /usr/bin/sudo /usr/bin/systemctl enable --now "$svc" 2>/dev/null \
-        || echo "WARNING: could not enable $svc"
-      case "$svc" in
-        vgauthd.service|open-vm-tools.service|vmtoolsd.service)
-          /usr/bin/sudo /usr/bin/systemctl restart "$svc" 2>/dev/null \
-            || echo "WARNING: could not restart $svc"
-          ;;
-      esac
-    fi
-  done
-else
-  echo "WARNING: systemctl not found. Enable open-vm-tools/vmtoolsd manually."
+if [ -x "$vmware_vmblock_fuse" ]; then
+  "$sudo_bin" "$systemctl_bin" enable --now ripper-vmblock-fuse.service 2>/dev/null \
+    || echo "WARNING: could not enable ripper-vmblock-fuse.service"
 fi
 
-failures=0
-
-check_failed() {
-  failures=$((failures + 1))
-  echo "ERROR: $1" >&2
-}
+"$sudo_bin" "$systemctl_bin" enable --now ripper-vmtoolsd.service
+"$sudo_bin" "$systemctl_bin" restart ripper-vmtoolsd.service
 
 if [ ! -d /sys/module/vmwgfx ]; then
-  if [ -x "$vmwgfx_prestart" ]; then
-    /usr/bin/sudo "$vmwgfx_prestart" || true
-  fi
+  "$sudo_bin" "$vmwgfx_prestart" || true
 fi
 
 if [ ! -d /sys/module/vmwgfx ]; then
@@ -186,60 +258,32 @@ else
   echo "vmwgfx kernel module is loaded."
 fi
 
-if ! /usr/bin/find /usr/lib /usr/lib64 -type f -path '*open-vm-tools*' -name '*resolution*.so' 2>/dev/null \
+if ! /usr/bin/find "$open_vm_tools" -type f -name '*resolution*.so' 2>/dev/null \
   | {{gnuGrep}}/bin/grep -qi resolution; then
-  check_failed "open-vm-tools resolution plugin was not found under /usr/lib; install the desktop/resolution-capable open-vm-tools build."
+  check_failed "Nix open-vm-tools resolution plugin was not found in $open_vm_tools."
 else
-  echo "open-vm-tools resolution plugin is installed."
+  echo "Nix open-vm-tools resolution plugin is installed."
 fi
 
-if [ -x /usr/bin/systemctl ]; then
-  tools_unit_found=false
-  tools_unit_active=false
-
-  for svc in open-vm-tools.service vmtoolsd.service; do
-    if unit_exists "$svc"; then
-      tools_unit_found=true
-      if /usr/bin/systemctl is-active --quiet "$svc"; then
-        tools_unit_active=true
-        echo "$svc is active."
-      else
-        check_failed "$svc is installed but not active."
-        /usr/bin/systemctl --no-pager --full status "$svc" 2>/dev/null || true
-        /usr/bin/journalctl --no-pager -u "$svc" -n 80 2>/dev/null || true
-      fi
-    fi
-  done
-
-  if [ "$tools_unit_found" = "false" ]; then
-    check_failed "no open-vm-tools root service found; expected open-vm-tools.service or vmtoolsd.service."
-  elif [ "$tools_unit_active" = "false" ]; then
-    check_failed "no open-vm-tools root service is active."
-  fi
-
-  for svc in vgauthd.service vmware-vmblock-fuse.service; do
-    if unit_exists "$svc"; then
-      if /usr/bin/systemctl is-active --quiet "$svc"; then
-        echo "$svc is active."
-      else
-        check_failed "$svc is installed but not active."
-        /usr/bin/systemctl --no-pager --full status "$svc" 2>/dev/null || true
-        /usr/bin/journalctl --no-pager -u "$svc" -n 80 2>/dev/null || true
-      fi
-    fi
-  done
+if "$systemctl_bin" is-active --quiet ripper-vmtoolsd.service; then
+  echo "ripper-vmtoolsd.service is active."
+else
+  check_failed "ripper-vmtoolsd.service is not active."
+  "$systemctl_bin" --no-pager --full status ripper-vmtoolsd.service 2>/dev/null || true
+  "$systemctl_bin" --no-pager --full status ripper-vmblock-fuse.service 2>/dev/null || true
+  /usr/bin/journalctl --no-pager -u ripper-vmtoolsd.service -n 120 2>/dev/null || true
 fi
 
-if [ ! -x /usr/bin/vmware-user-suid-wrapper ] && [ ! -x /usr/bin/vmtoolsd ] && [ ! -x /usr/bin/vmware-user ]; then
+if [ ! -x "$setuid_wrapper" ] && [ ! -x "$vmtoolsd" ]; then
   check_failed "no VMware X11 user agent command found."
 else
   echo "VMware X11 user agent command is available."
 fi
 
-if [ ! -x /usr/bin/vmware-rpctool ]; then
-  check_failed "vmware-rpctool was not found; open-vm-tools base install is incomplete."
+if [ ! -x "$vmware_rpctool" ]; then
+  check_failed "vmware-rpctool was not found in Nix open-vm-tools."
 else
-  echo "vmware-rpctool is available."
+  echo "vmware-rpctool is available from Nix open-vm-tools."
 fi
 
 if [ "$failures" -gt 0 ]; then
