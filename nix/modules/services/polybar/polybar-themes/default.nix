@@ -31,6 +31,11 @@ pkgs.runCommand "polybar-theme-${theme}" { } ''
   # Ripper restarts all bars as one unit on XRandR changes; Polybar's native
   # per-instance reload can leave the bottom bar missing during VMware resizes.
   find $out -name "*.ini" | xargs -r sed -i 's|^screenchange-reload = .*|screenchange-reload = false|'
+  sed -i '/^wm-name = /d' $out/${theme}/config.ini
+  sed -i \
+    -e '/^\[bar\/top\]$/a wm-name = ripper-polybar-top' \
+    -e '/^\[bar\/bottom\]$/a wm-name = ripper-polybar-bottom' \
+    $out/${theme}/config.ini
   # Use pulseaudio module (works with pipewire's PA compatibility layer)
   sed -i 's|\bvolume\b|pulseaudio|g' $out/${theme}/config.ini
   # The upstream theme pins a machine-specific sink, which makes the displayed
