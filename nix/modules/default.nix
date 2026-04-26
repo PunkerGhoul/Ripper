@@ -9,6 +9,9 @@ let
     if [ -n "$user_name" ]; then
       ${pkgs.procps}/bin/pkill -u "$user_name" -x picom 2>/dev/null || true
       ${pkgs.procps}/bin/pkill -u "$user_name" -f ripper-vmware-auto-resize 2>/dev/null || true
+      ${pkgs.procps}/bin/pkill -u "$user_name" -f 'vmtoolsd -n vmusr' 2>/dev/null || true
+      ${pkgs.procps}/bin/pkill -u "$user_name" -x vmware-user-suid-wrapper 2>/dev/null || true
+      ${pkgs.procps}/bin/pkill -u "$user_name" -x vmware-user 2>/dev/null || true
       ${pkgs.procps}/bin/pkill -u "$user_name" -x polybar-reload 2>/dev/null || true
       ${pkgs.procps}/bin/pkill -u "$user_name" -x dunst 2>/dev/null || true
       ${pkgs.procps}/bin/pkill -u "$user_name" -x nm-applet 2>/dev/null || true

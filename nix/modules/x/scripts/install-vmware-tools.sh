@@ -35,7 +35,13 @@ else
   exit 0
 fi
 
-for svc in vmtoolsd vmware-vmblock-fuse.service; do
-  /usr/bin/sudo {{systemd}}/bin/systemctl enable --now "$svc" 2>/dev/null \
-    || echo "WARNING: could not enable $svc"
-done
+if [ -x /usr/bin/systemctl ]; then
+  for svc in open-vm-tools.service vmtoolsd.service vmware-vmblock-fuse.service; do
+    if /usr/bin/systemctl list-unit-files "$svc" 2>/dev/null | {{gnuGrep}}/bin/grep -q "$svc"; then
+      /usr/bin/sudo /usr/bin/systemctl enable --now "$svc" 2>/dev/null \
+        || echo "WARNING: could not enable $svc"
+    fi
+  done
+else
+  echo "WARNING: systemctl not found. Enable open-vm-tools/vmtoolsd manually."
+fi
