@@ -196,6 +196,18 @@ tmp_modules_load="$(/usr/bin/mktemp)"
 "$sudo_bin" /usr/bin/install -Dm644 "$tmp_modules_load" /etc/modules-load.d/ripper-vmwgfx.conf
 /usr/bin/rm -f "$tmp_modules_load"
 
+fuse_conf=/etc/fuse.conf
+tmp_fuse_conf="$(/usr/bin/mktemp)"
+if [ -f "$fuse_conf" ]; then
+  /usr/bin/cat "$fuse_conf" > "$tmp_fuse_conf"
+fi
+if ! {{gnuGrep}}/bin/grep -Eq '^[[:space:]]*user_allow_other([[:space:]]|$)' "$tmp_fuse_conf"; then
+  /usr/bin/printf "\nuser_allow_other\n" >> "$tmp_fuse_conf"
+  "$sudo_bin" /usr/bin/install -Dm644 "$tmp_fuse_conf" "$fuse_conf"
+  echo "Configured $fuse_conf with user_allow_other."
+fi
+/usr/bin/rm -f "$tmp_fuse_conf"
+
 if [ -d "$open_vm_tools/lib/udev/rules.d" ]; then
   for rule in "$open_vm_tools"/lib/udev/rules.d/*.rules; do
     if [ -f "$rule" ]; then
@@ -217,8 +229,9 @@ else
   echo "Nix open-vm-tools does not include vmware-user-suid-wrapper; vmtoolsd -n vmusr will be used for the X session."
 fi
 
-vmblock_mount_unit='run-vmblock\x2dfuse.mount'
-vmblock_dependency=" $vmblock_mount_unit"
+vmblock_service=vmware-vmblock-fuse.service
+old_vmblock_mount_unit='run-vmblock\x2dfuse.mount'
+vmblock_dependency=" $vmblock_service"
 
 vmtools_unit=/etc/systemd/system/vmtoolsd.service
 tmp_vmtools_unit="$(/usr/bin/mktemp)"
@@ -245,21 +258,39 @@ EOF
 /usr/bin/rm -f "$tmp_vmtools_unit"
 echo "Configured $vmtools_unit."
 
-vmblock_unit="/etc/systemd/system/$vmblock_mount_unit"
+vmblock_prestart=/usr/local/libexec/ripper-vmblock-prestart
+tmp_vmblock_prestart="$(/usr/bin/mktemp)"
+/usr/bin/cat > "$tmp_vmblock_prestart" <<'EOF'
+#!/bin/sh
+set -eu
+
+/usr/bin/mkdir -p /run/vmblock-fuse
+
+if /usr/bin/grep -qs ' /run/vmblock-fuse ' /proc/mounts; then
+  /usr/bin/umount /run/vmblock-fuse 2>/dev/null || /bin/umount /run/vmblock-fuse 2>/dev/null || true
+fi
+EOF
+
+"$sudo_bin" /usr/bin/install -Dm755 "$tmp_vmblock_prestart" "$vmblock_prestart"
+/usr/bin/rm -f "$tmp_vmblock_prestart"
+
+vmblock_unit="/etc/systemd/system/$vmblock_service"
 if [ -x "$vmware_vmblock_fuse" ]; then
   tmp_vmblock_unit="$(/usr/bin/mktemp)"
   /usr/bin/cat > "$tmp_vmblock_unit" <<EOF
 [Unit]
-Description=Ripper VMware vmblock FUSE mount
+Description=Ripper VMware vmblock FUSE service
 Documentation=https://github.com/vmware/open-vm-tools/blob/master/open-vm-tools/vmblock-fuse/design.txt
 ConditionVirtualization=vmware
 Before=vmtoolsd.service
 
-[Mount]
-What=$vmware_vmblock_fuse
-Where=/run/vmblock-fuse
-Type=fuse
-Options=subtype=vmware-vmblock,default_permissions,allow_other
+[Service]
+Type=simple
+ExecStartPre=$vmblock_prestart
+ExecStart=$vmware_vmblock_fuse -f -o subtype=vmware-vmblock,default_permissions,allow_other /run/vmblock-fuse
+ExecStop=/usr/bin/umount /run/vmblock-fuse
+Restart=on-failure
+RestartSec=1
 
 [Install]
 WantedBy=multi-user.target
@@ -273,7 +304,7 @@ unit_exists() {
   "$systemctl_bin" list-unit-files "$1" 2>/dev/null | {{gnuGrep}}/bin/grep -q "^$1"
 }
 
-for svc in ripper-vmtoolsd.service ripper-vmblock-fuse.service vmware-vmblock-fuse.service open-vm-tools.service vmware.service; do
+for svc in ripper-vmtoolsd.service ripper-vmblock-fuse.service "$old_vmblock_mount_unit" open-vm-tools.service vmware.service; do
   if unit_exists "$svc"; then
     "$sudo_bin" "$systemctl_bin" disable --now "$svc" 2>/dev/null \
       || echo "WARNING: could not disable distro VMware service $svc"
@@ -283,7 +314,7 @@ done
 "$sudo_bin" /usr/bin/rm -f \
   /etc/systemd/system/ripper-vmtoolsd.service \
   /etc/systemd/system/ripper-vmblock-fuse.service \
-  /etc/systemd/system/vmware-vmblock-fuse.service \
+  "/etc/systemd/system/$old_vmblock_mount_unit" \
   /etc/systemd/system/vmtoolsd.service.d/10-ripper-vmwgfx.conf \
   /etc/systemd/system/open-vm-tools.service.d/10-ripper-vmwgfx.conf
 "$sudo_bin" /usr/bin/rm -rf \
@@ -294,8 +325,8 @@ done
 
 if [ -x "$vmware_vmblock_fuse" ]; then
   "$sudo_bin" /usr/bin/mkdir -p /run/vmblock-fuse
-  "$sudo_bin" "$systemctl_bin" enable --now "$vmblock_mount_unit" \
-    || check_failed "could not enable $vmblock_mount_unit; VMware clipboard and drag-and-drop need vmblock."
+  "$sudo_bin" "$systemctl_bin" enable --now "$vmblock_service" \
+    || check_failed "could not enable $vmblock_service; VMware clipboard and drag-and-drop need vmblock."
 fi
 
 "$sudo_bin" "$systemctl_bin" enable --now vmtoolsd.service
@@ -327,12 +358,12 @@ else
 fi
 
 if [ -x "$vmware_vmblock_fuse" ]; then
-  if "$systemctl_bin" is-active --quiet "$vmblock_mount_unit"; then
-    echo "$vmblock_mount_unit is active."
+  if "$systemctl_bin" is-active --quiet "$vmblock_service"; then
+    echo "$vmblock_service is active."
   else
-    check_failed "$vmblock_mount_unit is not active; VMware clipboard and drag-and-drop cannot work."
-    "$systemctl_bin" --no-pager --full status "$vmblock_mount_unit" 2>/dev/null || true
-    /usr/bin/journalctl --no-pager -u "$vmblock_mount_unit" -n 120 2>/dev/null || true
+    check_failed "$vmblock_service is not active; VMware clipboard and drag-and-drop cannot work."
+    "$systemctl_bin" --no-pager --full status "$vmblock_service" 2>/dev/null || true
+    /usr/bin/journalctl --no-pager -u "$vmblock_service" -n 120 2>/dev/null || true
   fi
 fi
 
