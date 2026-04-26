@@ -131,7 +131,9 @@ let
     [ -x /usr/lib/policykit-1-gnome/polkit-gnome-authentication-agent-1 ] \
       && /usr/lib/policykit-1-gnome/polkit-gnome-authentication-agent-1 >/dev/null 2>&1 &
 
-    [ -x /usr/bin/vmware-user ] && /usr/bin/vmware-user >/dev/null 2>&1 &
+    if [ -x "$HOME/.local/bin/ripper-vmware-user" ]; then
+      "$HOME/.local/bin/ripper-vmware-user" >/dev/null 2>&1 &
+    fi
 
     if [ -x "$HOME/.local/bin/ripper-vmware-auto-resize" ]; then
       "$HOME/.local/bin/ripper-vmware-auto-resize" >/dev/null 2>&1 &
