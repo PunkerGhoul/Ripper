@@ -27,9 +27,19 @@ echo "VMware environment detected."
 
 if [ -x /usr/bin/apt ]; then
   /usr/bin/sudo /usr/bin/apt update -y
-  /usr/bin/sudo /usr/bin/apt install -y open-vm-tools open-vm-tools-desktop xserver-xorg-video-vmware fuse3
+  /usr/bin/sudo /usr/bin/apt install -y open-vm-tools open-vm-tools-desktop fuse3
+  if /usr/bin/apt-cache show xserver-xorg-video-vmware >/dev/null 2>&1; then
+    /usr/bin/sudo /usr/bin/apt install -y xserver-xorg-video-vmware
+  else
+    echo "Optional package xserver-xorg-video-vmware not found; using Xorg modesetting with vmwgfx."
+  fi
 elif [ -x /usr/bin/pacman ]; then
-  /usr/bin/sudo /usr/bin/pacman -Syu --needed --noconfirm open-vm-tools xf86-video-vmware gtkmm3 fuse3
+  /usr/bin/sudo /usr/bin/pacman -Syu --needed --noconfirm open-vm-tools gtkmm3 fuse3
+  if /usr/bin/pacman -Si xf86-video-vmware >/dev/null 2>&1; then
+    /usr/bin/sudo /usr/bin/pacman -S --needed --noconfirm xf86-video-vmware
+  else
+    echo "Optional package xf86-video-vmware not found; using Xorg modesetting with vmwgfx."
+  fi
 else
   echo "WARNING: No supported package manager found. Install open-vm-tools, open-vm-tools-desktop and fuse3 manually."
   exit 0
