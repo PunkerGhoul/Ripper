@@ -197,6 +197,11 @@ in {
           always = true;
         }
         {
+          command = "$HOME/.local/bin/ripper-polybar-resize-watch";
+          notification = false;
+          always = true;
+        }
+        {
           command = "$HOME/.local/bin/ripper-vmware-auto-resize";
           notification = false;
           always = true;

@@ -82,6 +82,31 @@ let
       done
     } > "$log" 2>&1
   '';
+  polybarResizeWatchScript = ''
+    #!${pkgs.runtimeShell}
+    runtime_dir="''${XDG_RUNTIME_DIR:-/tmp/ripper-runtime-$UID}"
+    mkdir -p "$runtime_dir"
+    chmod 700 "$runtime_dir" 2>/dev/null || true
+    log="$runtime_dir/ripper-polybar-resize.log"
+    exec >>"$log" 2>&1
+
+    if [ -z "''${DISPLAY:-}" ]; then
+      export DISPLAY=:0
+    fi
+
+    if [ -z "''${XAUTHORITY:-}" ] && [ -r "$HOME/.Xauthority" ]; then
+      export XAUTHORITY="$HOME/.Xauthority"
+    fi
+
+    exec 9>"$runtime_dir/ripper-polybar-resize.lock"
+    if ! ${pkgs.util-linux}/bin/flock -n 9; then
+      echo "ripper-polybar-resize-watch: already running"
+      exit 0
+    fi
+
+    echo "ripper-polybar-resize-watch: start $(${pkgs.coreutils}/bin/date) DISPLAY=''${DISPLAY:-unset}"
+    exec ${polybarReload}/bin/polybar-reload "$HOME/.local/bin/ripper-polybar-start"
+  '';
 in
 {
   home.packages = [
@@ -109,6 +134,11 @@ in
 
   home.file.".local/bin/ripper-polybar-start" = {
     text = polybarStartScript;
+    executable = true;
+  };
+
+  home.file.".local/bin/ripper-polybar-resize-watch" = {
+    text = polybarResizeWatchScript;
     executable = true;
   };
 }

@@ -28,8 +28,9 @@ pkgs.runCommand "polybar-theme-${theme}" { } ''
   chmod -R u+w $out
   # Strip UTF-8 BOM from all .ini files (polybar does not support BOM)
   find $out -name "*.ini" | xargs -r sed -i '1s/^\xEF\xBB\xBF//'
-  # Follow XRandR screen changes immediately when VMware resizes the guest.
-  find $out -name "*.ini" | xargs -r sed -i 's|^screenchange-reload = .*|screenchange-reload = true|'
+  # Ripper restarts all bars as one unit on XRandR changes; Polybar's native
+  # per-instance reload can leave the bottom bar missing during VMware resizes.
+  find $out -name "*.ini" | xargs -r sed -i 's|^screenchange-reload = .*|screenchange-reload = false|'
   # Use pulseaudio module (works with pipewire's PA compatibility layer)
   sed -i 's|\bvolume\b|pulseaudio|g' $out/${theme}/config.ini
   # The upstream theme pins a machine-specific sink, which makes the displayed
