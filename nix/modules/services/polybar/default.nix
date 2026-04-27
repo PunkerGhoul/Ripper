@@ -124,6 +124,8 @@ let
     mkdir -p "$runtime_dir"
     chmod 700 "$runtime_dir" 2>/dev/null || true
     log="$runtime_dir/ripper-polybar-resize.log"
+    debounce_stamp="$runtime_dir/ripper-polybar-randr.stamp"
+    debounce_lock="$runtime_dir/ripper-polybar-randr.debounce"
     exec >>"$log" 2>&1
 
     if [ -z "''${DISPLAY:-}" ]; then
@@ -150,9 +152,10 @@ let
 
     "$HOME/.local/bin/ripper-polybar-start"
 
+    ${pkgs.coreutils}/bin/rmdir "$debounce_lock" 2>/dev/null || true
+
     restart_polybar_for_randr() {
-      echo "ripper-polybar-resize-watch: RandR event; polybar-msg cmd restart"
-      ${pkgs.coreutils}/bin/sleep 0.08
+      echo "ripper-polybar-resize-watch: RandR settled; polybar-msg cmd restart"
       if ${polybarPackage}/bin/polybar-msg cmd restart >/dev/null 2>&1; then
         echo "ripper-polybar-resize-watch: polybar IPC restart sent"
       else
@@ -161,11 +164,37 @@ let
       fi
     }
 
+    restart_polybar_after_randr_settles() {
+      while true; do
+        while true; do
+          seen="$(${pkgs.coreutils}/bin/cat "$debounce_stamp" 2>/dev/null || true)"
+          ${pkgs.coreutils}/bin/sleep 0.18
+          latest="$(${pkgs.coreutils}/bin/cat "$debounce_stamp" 2>/dev/null || true)"
+          [ -n "$seen" ] && [ "$seen" = "$latest" ] && break
+        done
+
+        settled_stamp="$latest"
+        restart_polybar_for_randr
+        latest="$(${pkgs.coreutils}/bin/cat "$debounce_stamp" 2>/dev/null || true)"
+        [ "$latest" = "$settled_stamp" ] && break
+        echo "ripper-polybar-resize-watch: RandR changed during restart; waiting again"
+      done
+
+      ${pkgs.coreutils}/bin/rmdir "$debounce_lock" 2>/dev/null || true
+    }
+
+    schedule_polybar_randr_restart() {
+      ${pkgs.coreutils}/bin/date +%s%N > "$debounce_stamp"
+      if ${pkgs.coreutils}/bin/mkdir "$debounce_lock" 2>/dev/null; then
+        restart_polybar_after_randr_settles &
+      fi
+    }
+
     while true; do
       ${pkgs.coreutils}/bin/stdbuf -oL -eL ${pkgs.xev}/bin/xev -root -event randr 2>&1 | while IFS= read -r event; do
         case "$event" in
           *RRScreenChangeNotify*|*RRNotify*)
-            restart_polybar_for_randr
+            schedule_polybar_randr_restart
             ;;
         esac
       done

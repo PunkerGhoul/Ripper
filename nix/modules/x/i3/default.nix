@@ -77,6 +77,45 @@ let
     export XDG_DATA_DIRS="${config.home.homeDirectory}/.local/share:${config.home.homeDirectory}/.nix-profile/share:${config.home.homeDirectory}/.local/state/nix/profiles/profile/share:''${XDG_DATA_DIRS:-}"
     exec ${pkgs.rofi}/bin/rofi -modi drun,run -show drun
   '';
+  floatingToggleScript = pkgs.writeShellScript "ripper-i3-floating-toggle" ''
+    set -eu
+
+    state="$(${pkgs.i3}/bin/i3-msg -t get_tree | ${pkgs.jq}/bin/jq -r '
+      recurse(.nodes[]?, .floating_nodes[]?)
+      | select(.focused == true)
+      | .floating // "auto_off"
+    ')"
+
+    case "$state" in
+      user_on|auto_on)
+        exec ${pkgs.i3}/bin/i3-msg 'floating disable'
+        ;;
+    esac
+
+    geometry="$(${pkgs.i3}/bin/i3-msg -t get_workspaces | ${pkgs.jq}/bin/jq -r '
+      ([.[] | select(.focused)] + [.[] | select(.visible)] + .)[0].rect
+      | "\(.width) \(.height)"
+    ')"
+    set -- $geometry
+    width="''${1:-1280}"
+    height="''${2:-720}"
+
+    case "$width" in
+      ""|*[!0-9]*)
+        width=1280
+        ;;
+    esac
+    case "$height" in
+      ""|*[!0-9]*)
+        height=720
+        ;;
+    esac
+
+    target_width=$((width * 75 / 100))
+    target_height=$((height * 75 / 100))
+
+    exec ${pkgs.i3}/bin/i3-msg "floating enable, resize set $target_width px $target_height px, move position center"
+  '';
   kittyLauncher = "${config.home.homeDirectory}/.local/bin/ripper-kitty";
   confirmLogoutScript = pkgs.writeShellScript "ripper-confirm-logout" ''
     exec ${pkgs.i3}/bin/i3-nagbar \
@@ -144,6 +183,11 @@ in {
   home.file = {
     ".local/bin/ripper-session-start" = {
       text = sessionStartScript;
+      executable = true;
+    };
+
+    ".local/bin/ripper-i3-floating-toggle" = {
+      source = floatingToggleScript;
       executable = true;
     };
 
@@ -285,7 +329,7 @@ in {
         "${modifier}+w" = "layout tabbed";
         "${modifier}+e" = "layout toggle split";
         # Toggle tiling / floating
-        "${modifier}+Shift+space" = "floating toggle";
+        "${modifier}+Shift+space" = "exec --no-startup-id $HOME/.local/bin/ripper-i3-floating-toggle";
         # Change focus between tiling / floating windows
         "${modifier}+space" = "focus mode_toggle";
         # Scratchpad
