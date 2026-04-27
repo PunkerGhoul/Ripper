@@ -170,6 +170,7 @@ in
     open-vm-tools
     pciutils    # lspci for VMware detection
     xrandr      # available in PATH for manual use
+    xev         # listen to X RandR events for resize diagnostics
     xwininfo    # inspect X11 window geometry while debugging bars/windows
     xdotool     # drive/focus X11 windows from i3 helpers and diagnostics
   ];

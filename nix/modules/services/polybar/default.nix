@@ -31,7 +31,10 @@ let
     chmod 700 "$runtime_dir" 2>/dev/null || true
     log="$runtime_dir/ripper-polybar.log"
     config="$HOME/.config/polybar/${theme}/config.ini"
-    runtime_config="$runtime_dir/ripper-polybar-${theme}.ini"
+    force_restart=false
+    if [ "''${1:-}" = "--force" ]; then
+      force_restart=true
+    fi
 
     {
       echo "ripper-polybar-start: $(${pkgs.coreutils}/bin/date)"
@@ -68,141 +71,50 @@ let
         exit 0
       fi
 
-      read_i3_geometry() {
-        ${pkgs.i3}/bin/i3-msg -t get_workspaces 2>/dev/null | ${pkgs.jq}/bin/jq -r '
-          ([.[] | select(.focused)] + [.[] | select(.visible)] + .)[0]
-          | select(.rect.width > 0 and .rect.height > 0)
-          | "\(.rect.width) \(.rect.height) \(.rect.x) \(.rect.y) \(.output // "")"
-        '
+      polybar_count() {
+        ${pkgs.procps}/bin/pgrep -u "$UID" -x polybar 2>/dev/null \
+          | ${pkgs.coreutils}/bin/wc -l \
+          | ${pkgs.coreutils}/bin/tr -d ' ' || true
       }
 
-      read_geometry() {
-        read_i3_geometry
+      restart_polybar_ipc() {
+        [ "$(polybar_count)" -ge 2 ] || return 1
+        ${polybarPackage}/bin/polybar-msg cmd restart >/dev/null 2>&1
       }
 
-      polybar_widths() {
-        ${pkgs.xwininfo}/bin/xwininfo -root -tree 2>/dev/null | ${pkgs.gawk}/bin/awk '
-          /"ripper-polybar-(top|bottom)"/ {
-            for (i = 1; i <= NF; i++) {
-              if (match($i, /^([0-9]+)x[0-9]+[-+][0-9]+[-+][0-9]+$/, m)) {
-                print m[1]
-                break
-              }
-            }
-          }
-        '
-      }
-
-      polybar_widths_match() {
-        count=0
-        mismatch=0
-        for width in $(polybar_widths); do
-          count=$((count + 1))
-          if [ "$width" != "$screen_width" ]; then
-            mismatch=1
-          fi
-        done
-
-        [ "$count" -ge 2 ] && [ "$mismatch" -eq 0 ]
-      }
-
-      last_geometry=""
-      stable_samples=0
-      geometry=""
-      for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40; do
-        current_geometry="$(read_geometry || true)"
-
-        if [ -n "$current_geometry" ] && [ "$current_geometry" = "$last_geometry" ]; then
-          stable_samples=$((stable_samples + 1))
-        else
-          stable_samples=0
-          last_geometry="$current_geometry"
-        fi
-
-        if [ -n "$current_geometry" ]; then
-          geometry="$current_geometry"
-        fi
-
-        [ "$stable_samples" -ge 6 ] && break
-        ${pkgs.coreutils}/bin/sleep 0.1
-      done
-
-      set -- $geometry
-      screen_width="''${1:-}"
-      screen_height="''${2:-}"
-      screen_x="''${3:-0}"
-      screen_y="''${4:-0}"
-      screen_monitor="''${5:-}"
-      case "$screen_width" in
-        *[!0-9]*)
-          screen_width=""
-          ;;
-      esac
-      case "$screen_x" in
-        -|*[!0-9-]*)
-          screen_x="0"
-          ;;
-      esac
-
-      if [ -n "$screen_width" ]; then
-        runtime_config_tmp="$runtime_config.$$"
-        if [ -n "$screen_monitor" ]; then
-          if ${pkgs.gnused}/bin/sed -E \
-            -e "0,/^monitor =.*/s//monitor = $screen_monitor/" \
-            -e "0,/^width = .*/s//width = $screen_width/" \
-            -e "0,/^offset-x = .*/s//offset-x = 0/" \
-            "$config" > "$runtime_config_tmp"; then
-            ${pkgs.coreutils}/bin/mv "$runtime_config_tmp" "$runtime_config"
-            config="$runtime_config"
-            echo "polybar runtime geometry from i3: width=$screen_width height=$screen_height x=$screen_x y=$screen_y monitor=$screen_monitor"
-          else
-            ${pkgs.coreutils}/bin/rm -f "$runtime_config_tmp"
-            echo "could not generate runtime polybar config; using source config"
-          fi
-        elif ${pkgs.gnused}/bin/sed -E \
-          -e "0,/^width = .*/s//width = $screen_width/" \
-          -e "0,/^offset-x = .*/s//offset-x = 0/" \
-          "$config" > "$runtime_config_tmp"; then
-          ${pkgs.coreutils}/bin/mv "$runtime_config_tmp" "$runtime_config"
-          config="$runtime_config"
-          echo "polybar runtime geometry: width=$screen_width height=$screen_height x=$screen_x y=$screen_y monitor=auto"
-        else
-          ${pkgs.coreutils}/bin/rm -f "$runtime_config_tmp"
-          echo "could not generate runtime polybar config; using source config"
-        fi
-      else
-        echo "could not detect i3 workspace geometry; refusing to start polybar"
+      if [ "$force_restart" = "true" ] && restart_polybar_ipc; then
+        echo "polybar restarted through IPC"
         exit 0
       fi
 
-      for attempt in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
-        ${pkgs.psmisc}/bin/killall -q polybar 2>/dev/null || true
-        for _ in 1 2 3 4 5 6 7 8 9 10; do
-          ${pkgs.procps}/bin/pgrep -u "$UID" -x polybar >/dev/null 2>&1 || break
-          ${pkgs.coreutils}/bin/sleep 0.05
-        done
-        if ${pkgs.procps}/bin/pgrep -u "$UID" -x polybar >/dev/null 2>&1; then
-          ${pkgs.procps}/bin/pkill -KILL -u "$UID" -x polybar 2>/dev/null || true
-          ${pkgs.coreutils}/bin/sleep 0.03
+      if [ "$force_restart" != "true" ] && [ "$(polybar_count)" -ge 2 ]; then
+        echo "polybar already running"
+        exit 0
+      fi
+
+      ${pkgs.psmisc}/bin/killall -q polybar 2>/dev/null || true
+      for _ in 1 2 3 4 5 6 7 8 9 10; do
+        [ "$(polybar_count)" -eq 0 ] && break
+        ${pkgs.coreutils}/bin/sleep 0.05
+      done
+      if [ "$(polybar_count)" -ne 0 ]; then
+        ${pkgs.procps}/bin/pkill -KILL -u "$UID" -x polybar 2>/dev/null || true
+        ${pkgs.coreutils}/bin/sleep 0.03
+      fi
+
+      ${polybarPackage}/bin/polybar -q top -c "$config" &
+      ${polybarPackage}/bin/polybar -q bottom -c "$config" &
+
+      for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
+        running="$(polybar_count)"
+        if [ "''${running:-0}" -ge 2 ]; then
+          echo "polybar started: $running processes"
+          exit 0
         fi
-
-        ${polybarPackage}/bin/polybar -q top -c "$config" &
-        ${polybarPackage}/bin/polybar -q bottom -c "$config" &
-
-        for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
-          running="$(${pkgs.procps}/bin/pgrep -u "$UID" -x polybar 2>/dev/null | ${pkgs.coreutils}/bin/wc -l | ${pkgs.coreutils}/bin/tr -d ' ' || true)"
-          if [ "''${running:-0}" -ge 2 ] && polybar_widths_match; then
-            echo "polybar started: $running processes width=$screen_width"
-            exit 0
-          fi
-          ${pkgs.coreutils}/bin/sleep 0.05
-        done
-
-        actual_widths="$(polybar_widths | ${pkgs.coreutils}/bin/tr '\n' ' ' || true)"
-        echo "polybar width mismatch attempt=$attempt target=$screen_width actual=''${actual_widths:-none}; retrying"
+        ${pkgs.coreutils}/bin/sleep 0.05
       done
 
-      echo "polybar width did not converge with i3; waiting for next i3 event"
+      echo "polybar did not start; running=$(polybar_count)"
       exit 0
     } > "$log" 2>&1
   '';
@@ -224,8 +136,8 @@ let
 
     exec 9>"$runtime_dir/ripper-polybar-resize.lock"
     if ! ${pkgs.util-linux}/bin/flock -n 9; then
-      echo "ripper-polybar-resize-watch: already running; forcing polybar restart"
-      "$HOME/.local/bin/ripper-polybar-start"
+      echo "ripper-polybar-resize-watch: already running; requesting polybar IPC restart"
+      "$HOME/.local/bin/ripper-polybar-start" --force
       exit 0
     fi
 
@@ -238,17 +150,26 @@ let
 
     "$HOME/.local/bin/ripper-polybar-start"
 
+    restart_polybar_for_randr() {
+      echo "ripper-polybar-resize-watch: RandR event; polybar-msg cmd restart"
+      ${pkgs.coreutils}/bin/sleep 0.08
+      if ${polybarPackage}/bin/polybar-msg cmd restart >/dev/null 2>&1; then
+        echo "ripper-polybar-resize-watch: polybar IPC restart sent"
+      else
+        echo "ripper-polybar-resize-watch: polybar IPC restart failed; starting bars"
+        "$HOME/.local/bin/ripper-polybar-start" --force
+      fi
+    }
+
     while true; do
-      ${pkgs.i3}/bin/i3-msg -t subscribe -m '["output","workspace"]' 2>&1 | while IFS= read -r event; do
+      ${pkgs.coreutils}/bin/stdbuf -oL -eL ${pkgs.xev}/bin/xev -root -event randr 2>&1 | while IFS= read -r event; do
         case "$event" in
-          *'"success":true'*)
-            continue
+          *RRScreenChangeNotify*|*RRNotify*)
+            restart_polybar_for_randr
             ;;
         esac
-        echo "ripper-polybar-resize-watch: i3 event $event"
-        "$HOME/.local/bin/ripper-polybar-start"
       done
-      echo "ripper-polybar-resize-watch: i3 subscription ended; retrying"
+      echo "ripper-polybar-resize-watch: xev RandR watcher ended; retrying"
       ${pkgs.coreutils}/bin/sleep 0.25
       "$HOME/.local/bin/ripper-polybar-start"
     done
@@ -268,6 +189,7 @@ in
   '';
 
   home.packages = [
+    polybarPackage
     pkgs.nerd-fonts.iosevka
     pkgs.nerd-fonts.symbols-only
   ];
