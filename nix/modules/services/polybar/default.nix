@@ -31,10 +31,19 @@ let
     chmod 700 "$runtime_dir" 2>/dev/null || true
     log="$runtime_dir/ripper-polybar.log"
     config="$HOME/.config/polybar/${theme}/config.ini"
+    runtime_config="$runtime_dir/ripper-polybar-${theme}.ini"
+    geometry_state="$runtime_dir/ripper-polybar-randr.geometry"
     force_restart=false
-    if [ "''${1:-}" = "--force" ]; then
-      force_restart=true
-    fi
+    hard_restart=false
+    case "''${1:-}" in
+      --force)
+        force_restart=true
+        ;;
+      --hard)
+        force_restart=true
+        hard_restart=true
+        ;;
+    esac
 
     {
       echo "ripper-polybar-start: $(${pkgs.coreutils}/bin/date)"
@@ -71,23 +80,129 @@ let
         exit 0
       fi
 
+      read_xwininfo_geometry() {
+        ${pkgs.xwininfo}/bin/xwininfo "$@" 2>/dev/null | ${pkgs.gawk}/bin/awk '
+          /Absolute upper-left X:/ { x=$NF }
+          /Absolute upper-left Y:/ { y=$NF }
+          /^  Width:/ { w=$NF }
+          /^  Height:/ { h=$NF }
+          END {
+            if (w + 0 > 0 && h + 0 > 0) {
+              print (w + 0) "x" (h + 0) "+" (x + 0) "+" (y + 0)
+            } else {
+              exit 1
+            }
+          }
+        '
+      }
+
+      read_active_geometry() {
+        active_window="$(${pkgs.xdotool}/bin/xdotool getactivewindow 2>/dev/null || true)"
+        case "$active_window" in
+          ""|*[!0-9]*)
+            return 1
+            ;;
+        esac
+
+        read_xwininfo_geometry -id "$active_window"
+      }
+
+      read_effective_geometry() {
+        read_active_geometry \
+          || read_xwininfo_geometry -root \
+          || return 1
+      }
+
+      write_runtime_config() {
+        geometry="$1"
+        case "$geometry" in
+          ""|unknown)
+            return 1
+            ;;
+          *x*+*)
+            ;;
+          *)
+            return 1
+            ;;
+        esac
+
+        width="''${geometry%%x*}"
+        rest="''${geometry#*x}"
+        rest="''${rest#*+}"
+        offset_x="''${rest%%+*}"
+
+        case "$width" in
+          ""|*[!0-9]*)
+            return 1
+            ;;
+        esac
+        case "$offset_x" in
+          ""|-|*[!0-9-]*)
+            return 1
+            ;;
+        esac
+
+        runtime_config_tmp="$runtime_config.$$"
+        if ${pkgs.gnused}/bin/sed -E \
+          -e "0,/^monitor =.*/s//monitor = /" \
+          -e "0,/^width = .*/s//width = $width/" \
+          -e "0,/^offset-x = .*/s//offset-x = $offset_x/" \
+          "$config" > "$runtime_config_tmp"; then
+          ${pkgs.coreutils}/bin/mv "$runtime_config_tmp" "$runtime_config"
+          echo "$geometry" > "$geometry_state"
+          config="$runtime_config"
+          echo "polybar runtime config geometry=$geometry width=$width offset-x=$offset_x"
+          return 0
+        fi
+
+        ${pkgs.coreutils}/bin/rm -f "$runtime_config_tmp"
+        return 1
+      }
+
+      geometry=""
+      if [ "$hard_restart" != "true" ]; then
+        geometry="$(${pkgs.coreutils}/bin/cat "$geometry_state" 2>/dev/null || true)"
+      fi
+      if [ -z "$geometry" ]; then
+        geometry="$(read_effective_geometry || true)"
+      fi
+      write_runtime_config "$geometry" || true
+
       polybar_count() {
         ${pkgs.procps}/bin/pgrep -u "$UID" -x polybar 2>/dev/null \
           | ${pkgs.coreutils}/bin/wc -l \
           | ${pkgs.coreutils}/bin/tr -d ' ' || true
       }
 
-      restart_polybar_ipc() {
-        [ "$(polybar_count)" -ge 2 ] || return 1
-        ${polybarPackage}/bin/polybar-msg cmd restart >/dev/null 2>&1
+      polybar_window_count() {
+        ${pkgs.xwininfo}/bin/xwininfo -root -tree 2>/dev/null | ${pkgs.gawk}/bin/awk '
+          /"polybar-top/ { top=1 }
+          /"polybar-bottom/ { bottom=1 }
+          END { print top + bottom }
+        '
       }
 
-      if [ "$force_restart" = "true" ] && restart_polybar_ipc; then
+      ensure_two_polybars() {
+        [ "$(polybar_count)" -ge 2 ] || return 1
+        [ "$(polybar_window_count)" -ge 2 ] || return 1
+      }
+
+      restart_polybar_ipc() {
+        ensure_two_polybars || return 1
+        ${polybarPackage}/bin/polybar-msg cmd restart >/dev/null 2>&1 || return 1
+        for _ in 1 2 3 4 5 6 7 8 9 10; do
+          ensure_two_polybars && return 0
+          ${pkgs.coreutils}/bin/sleep 0.05
+        done
+        return 1
+      }
+
+      if [ "$force_restart" = "true" ] && [ "$hard_restart" != "true" ] && restart_polybar_ipc; then
         echo "polybar restarted through IPC"
         exit 0
       fi
 
-      if [ "$force_restart" != "true" ] && [ "$(polybar_count)" -ge 2 ]; then
+      if [ "$force_restart" != "true" ] && ensure_two_polybars; then
         echo "polybar already running"
         exit 0
       fi
@@ -107,14 +222,15 @@ let
 
       for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
         running="$(polybar_count)"
-        if [ "''${running:-0}" -ge 2 ]; then
-          echo "polybar started: $running processes"
+        windows="$(polybar_window_count)"
+        if [ "''${running:-0}" -ge 2 ] && [ "''${windows:-0}" -ge 2 ]; then
+          echo "polybar started: $running processes $windows windows"
           exit 0
         fi
         ${pkgs.coreutils}/bin/sleep 0.05
       done
 
-      echo "polybar did not start; running=$(polybar_count)"
+      echo "polybar did not start completely; running=$(polybar_count) windows=$(polybar_window_count)"
       exit 0
     } > "$log" 2>&1
   '';
@@ -124,6 +240,9 @@ let
     mkdir -p "$runtime_dir"
     chmod 700 "$runtime_dir" 2>/dev/null || true
     log="$runtime_dir/ripper-polybar-resize.log"
+    debounce_stamp="$runtime_dir/ripper-polybar-randr.stamp"
+    debounce_lock="$runtime_dir/ripper-polybar-randr.debounce"
+    geometry_state="$runtime_dir/ripper-polybar-randr.geometry"
     exec >>"$log" 2>&1
 
     if [ -z "''${DISPLAY:-}" ]; then
@@ -148,16 +267,102 @@ let
       ${pkgs.coreutils}/bin/sleep 0.1
     done
 
-    "$HOME/.local/bin/ripper-polybar-start"
+    "$HOME/.local/bin/ripper-polybar-start" --hard
 
-    restart_polybar_for_randr() {
-      echo "ripper-polybar-resize-watch: RandR event; polybar-msg cmd restart"
-      ${pkgs.coreutils}/bin/sleep 0.08
-      if ${polybarPackage}/bin/polybar-msg cmd restart >/dev/null 2>&1; then
-        echo "ripper-polybar-resize-watch: polybar IPC restart sent"
-      else
-        echo "ripper-polybar-resize-watch: polybar IPC restart failed; starting bars"
-        "$HOME/.local/bin/ripper-polybar-start" --force
+    ${pkgs.coreutils}/bin/rmdir "$debounce_lock" 2>/dev/null || true
+
+    polybar_count() {
+      ${pkgs.procps}/bin/pgrep -u "$UID" -x polybar 2>/dev/null \
+        | ${pkgs.coreutils}/bin/wc -l \
+        | ${pkgs.coreutils}/bin/tr -d ' ' || true
+    }
+
+    polybar_window_count() {
+      ${pkgs.xwininfo}/bin/xwininfo -root -tree 2>/dev/null | ${pkgs.gawk}/bin/awk '
+        /"polybar-top/ { top=1 }
+        /"polybar-bottom/ { bottom=1 }
+        END { print top + bottom }
+      '
+    }
+
+    ensure_two_polybars() {
+      for _ in 1 2 3 4 5 6 7 8 9 10; do
+        [ "$(polybar_count)" -ge 2 ] && [ "$(polybar_window_count)" -ge 2 ] && return 0
+        ${pkgs.coreutils}/bin/sleep 0.05
+      done
+      return 1
+    }
+
+    read_xwininfo_geometry() {
+      ${pkgs.xwininfo}/bin/xwininfo "$@" 2>/dev/null | ${pkgs.gawk}/bin/awk '
+        /Absolute upper-left X:/ { x=$NF }
+        /Absolute upper-left Y:/ { y=$NF }
+        /^  Width:/ { w=$NF }
+        /^  Height:/ { h=$NF }
+        END {
+          if (w + 0 > 0 && h + 0 > 0) {
+            print (w + 0) "x" (h + 0) "+" (x + 0) "+" (y + 0)
+          } else {
+            exit 1
+          }
+        }
+      '
+    }
+
+    read_active_geometry() {
+      active_window="$(${pkgs.xdotool}/bin/xdotool getactivewindow 2>/dev/null || true)"
+      case "$active_window" in
+        ""|*[!0-9]*)
+          return 1
+          ;;
+      esac
+
+      read_xwininfo_geometry -id "$active_window"
+    }
+
+    read_effective_geometry() {
+      read_active_geometry \
+        || read_xwininfo_geometry -root \
+        || echo unknown
+    }
+
+    restart_polybar_after_randr_settles() {
+      while true; do
+        while true; do
+          seen="$(${pkgs.coreutils}/bin/cat "$debounce_stamp" 2>/dev/null || true)"
+          ${pkgs.coreutils}/bin/sleep 0.18
+          latest="$(${pkgs.coreutils}/bin/cat "$debounce_stamp" 2>/dev/null || true)"
+          [ -n "$seen" ] && [ "$seen" = "$latest" ] && break
+        done
+        settled_stamp="$latest"
+
+        geometry="$(read_effective_geometry)"
+        previous_geometry="$(${pkgs.coreutils}/bin/cat "$geometry_state" 2>/dev/null || true)"
+        if [ "$geometry" = "$previous_geometry" ] && [ "$(polybar_count)" -ge 2 ]; then
+          echo "ripper-polybar-resize-watch: RandR settled; geometry unchanged: $geometry"
+        else
+          echo "$geometry" > "$geometry_state"
+          echo "ripper-polybar-resize-watch: RandR settled geometry=$geometry; polybar-msg cmd restart"
+          if ${polybarPackage}/bin/polybar-msg cmd restart >/dev/null 2>&1 && ensure_two_polybars; then
+            echo "ripper-polybar-resize-watch: polybar IPC restart sent"
+          else
+            echo "ripper-polybar-resize-watch: polybar IPC restart left an incomplete state; hard restarting both bars"
+            "$HOME/.local/bin/ripper-polybar-start" --hard
+          fi
+        fi
+
+        latest="$(${pkgs.coreutils}/bin/cat "$debounce_stamp" 2>/dev/null || true)"
+        [ "$latest" = "$settled_stamp" ] && break
+        echo "ripper-polybar-resize-watch: RandR changed during handling; waiting again"
+      done
+
+      ${pkgs.coreutils}/bin/rmdir "$debounce_lock" 2>/dev/null || true
+    }
+
+    schedule_polybar_randr_restart() {
+      ${pkgs.coreutils}/bin/date +%s%N > "$debounce_stamp"
+      if ${pkgs.coreutils}/bin/mkdir "$debounce_lock" 2>/dev/null; then
+        restart_polybar_after_randr_settles &
       fi
     }
 
@@ -165,7 +370,7 @@ let
       ${pkgs.coreutils}/bin/stdbuf -oL -eL ${pkgs.xev}/bin/xev -root -event randr 2>&1 | while IFS= read -r event; do
         case "$event" in
           *RRScreenChangeNotify*|*RRNotify*)
-            restart_polybar_for_randr
+            schedule_polybar_randr_restart
             ;;
         esac
       done
