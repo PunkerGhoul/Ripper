@@ -53,7 +53,6 @@ pkgs.runCommand "polybar-theme-${theme}" { } ''
     -e 's|notify-send |${pkgs.libnotify}/bin/notify-send |g' \
     -e 's|ifconfig|${pkgs.net-tools}/bin/ifconfig|g' \
     -e 's|ans=\$(confirm_exit &)|ans=$(confirm_exit)|g' \
-    -e 's|systemctl |/usr/bin/systemctl |g' \
     -e 's|$HOME/.config/scripts/lock|$HOME/.config/i3/scripts/lock|g' \
     -e 's@"\$DESKTOP_SESSION" == "i3"@"\$DESKTOP_SESSION" == "i3" || "\$DESKTOP_SESSION" == "ripper"@g' \
     -e 's|i3-msg exit|${logoutScript}|g' \
