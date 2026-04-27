@@ -16,7 +16,6 @@ let
   };
 
   featherFont   = import ./feather-font.nix { inherit pkgs; };
-  polybarReload = import ./polybar-reload { inherit pkgs; };
   resolvedLogoutScript =
     if logoutScript != null then
       logoutScript
@@ -80,6 +79,32 @@ let
 
       read_geometry() {
         read_i3_geometry
+      }
+
+      polybar_widths() {
+        ${pkgs.xwininfo}/bin/xwininfo -root -tree 2>/dev/null | ${pkgs.gawk}/bin/awk '
+          /"ripper-polybar-(top|bottom)"/ {
+            for (i = 1; i <= NF; i++) {
+              if (match($i, /^([0-9]+)x[0-9]+[-+][0-9]+[-+][0-9]+$/, m)) {
+                print m[1]
+                break
+              }
+            }
+          }
+        '
+      }
+
+      polybar_widths_match() {
+        count=0
+        mismatch=0
+        for width in $(polybar_widths); do
+          count=$((count + 1))
+          if [ "$width" != "$screen_width" ]; then
+            mismatch=1
+          fi
+        done
+
+        [ "$count" -ge 2 ] && [ "$mismatch" -eq 0 ]
       }
 
       last_geometry=""
@@ -151,7 +176,7 @@ let
         exit 0
       fi
 
-      for _ in 1 2 3 4 5; do
+      for attempt in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
         ${pkgs.psmisc}/bin/killall -q polybar 2>/dev/null || true
         for _ in 1 2 3 4 5 6 7 8 9 10; do
           ${pkgs.procps}/bin/pgrep -u "$UID" -x polybar >/dev/null 2>&1 || break
@@ -165,15 +190,21 @@ let
         ${polybarPackage}/bin/polybar -q top -c "$config" &
         ${polybarPackage}/bin/polybar -q bottom -c "$config" &
 
-        ${pkgs.coreutils}/bin/sleep 0.2
-        running="$(${pkgs.procps}/bin/pgrep -u "$UID" -x polybar 2>/dev/null | ${pkgs.coreutils}/bin/wc -l | ${pkgs.coreutils}/bin/tr -d ' ' || true)"
-        if [ "''${running:-0}" -ge 2 ]; then
-          echo "polybar started: $running processes"
-          exit 0
-        fi
+        for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
+          running="$(${pkgs.procps}/bin/pgrep -u "$UID" -x polybar 2>/dev/null | ${pkgs.coreutils}/bin/wc -l | ${pkgs.coreutils}/bin/tr -d ' ' || true)"
+          if [ "''${running:-0}" -ge 2 ] && polybar_widths_match; then
+            echo "polybar started: $running processes width=$screen_width"
+            exit 0
+          fi
+          ${pkgs.coreutils}/bin/sleep 0.05
+        done
 
-        echo "polybar did not stay up; retrying"
+        actual_widths="$(polybar_widths | ${pkgs.coreutils}/bin/tr '\n' ' ' || true)"
+        echo "polybar width mismatch attempt=$attempt target=$screen_width actual=''${actual_widths:-none}; retrying"
       done
+
+      echo "polybar width did not converge with i3; waiting for next i3 event"
+      exit 0
     } > "$log" 2>&1
   '';
   polybarResizeWatchScript = ''
@@ -199,7 +230,27 @@ let
     fi
 
     echo "ripper-polybar-resize-watch: start $(${pkgs.coreutils}/bin/date) DISPLAY=''${DISPLAY:-unset}"
-    exec ${polybarReload}/bin/polybar-reload
+
+    for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30; do
+      ${pkgs.i3}/bin/i3-msg -t get_workspaces >/dev/null 2>&1 && break
+      ${pkgs.coreutils}/bin/sleep 0.1
+    done
+
+    "$HOME/.local/bin/ripper-polybar-start" >/dev/null 2>&1 &
+
+    while true; do
+      ${pkgs.i3}/bin/i3-msg -t subscribe -m '["output","workspace"]' 2>&1 | while IFS= read -r event; do
+        case "$event" in
+          *'"success":true'*)
+            continue
+            ;;
+        esac
+        echo "ripper-polybar-resize-watch: i3 event $event"
+        "$HOME/.local/bin/ripper-polybar-start" >/dev/null 2>&1 &
+      done
+      echo "ripper-polybar-resize-watch: i3 subscription ended; retrying"
+      ${pkgs.coreutils}/bin/sleep 0.25
+    done
   '';
 in
 {
@@ -236,11 +287,6 @@ in
   home.file.".config/polybar" = {
     source = polybarTheme;
     recursive = true;
-  };
-
-  home.file.".local/bin/polybar-reload" = {
-    source = "${polybarReload}/bin/polybar-reload";
-    executable = true;
   };
 
   home.file.".local/bin/ripper-polybar-start" = {
