@@ -62,32 +62,93 @@ let
         ${pkgs.coreutils}/bin/sleep 0.05
       done
 
-      screen_width="$(${pkgs.xrandr}/bin/xrandr --current 2>/dev/null | ${pkgs.gawk}/bin/awk '
-        /^Screen [0-9]+:/ {
-          for (i = 1; i <= NF; i++) {
-            if ($i == "current" && (i + 1) <= NF) {
-              gsub(/,/, "", $(i + 1))
-              print $(i + 1)
-              exit
+      read_geometry() {
+        ${pkgs.xrandr}/bin/xrandr --listactivemonitors 2>/dev/null | ${pkgs.gawk}/bin/awk '
+          NR > 1 && match($0, /([0-9]+)\/[0-9]+x([0-9]+)\/[0-9]+\+(-?[0-9]+)\+(-?[0-9]+)/, m) {
+            print m[1], m[2], m[3], m[4], $NF
+            exit
+          }
+        '
+      }
+
+      read_screen_geometry() {
+        ${pkgs.xrandr}/bin/xrandr --current 2>/dev/null | ${pkgs.gawk}/bin/awk '
+          /^Screen [0-9]+:/ {
+            for (i = 1; i <= NF; i++) {
+              if ($i == "current" && (i + 3) <= NF) {
+                gsub(/,/, "", $(i + 1))
+                gsub(/,/, "", $(i + 3))
+                print $(i + 1), $(i + 3), 0, 0, ""
+                exit
+              }
             }
           }
-        }
-      ')"
+        '
+      }
+
+      last_geometry=""
+      stable_samples=0
+      geometry=""
+      for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40; do
+        current_geometry="$(read_geometry || true)"
+        if [ -z "$current_geometry" ]; then
+          current_geometry="$(read_screen_geometry || true)"
+        fi
+
+        if [ -n "$current_geometry" ] && [ "$current_geometry" = "$last_geometry" ]; then
+          stable_samples=$((stable_samples + 1))
+        else
+          stable_samples=0
+          last_geometry="$current_geometry"
+        fi
+
+        if [ -n "$current_geometry" ]; then
+          geometry="$current_geometry"
+        fi
+
+        [ "$stable_samples" -ge 6 ] && break
+        ${pkgs.coreutils}/bin/sleep 0.1
+      done
+
+      set -- $geometry
+      screen_width="''${1:-}"
+      screen_height="''${2:-}"
+      screen_x="''${3:-0}"
+      screen_y="''${4:-0}"
+      screen_monitor="''${5:-}"
       case "$screen_width" in
         *[!0-9]*)
           screen_width=""
           ;;
       esac
+      case "$screen_x" in
+        -|*[!0-9-]*)
+          screen_x="0"
+          ;;
+      esac
 
       if [ -n "$screen_width" ]; then
         runtime_config_tmp="$runtime_config.$$"
-        if ${pkgs.gnused}/bin/sed -E \
+        if [ -n "$screen_monitor" ]; then
+          if ${pkgs.gnused}/bin/sed -E \
+            -e "0,/^monitor =.*/s//monitor = $screen_monitor/" \
+            -e "0,/^width = .*/s//width = $screen_width/" \
+            -e "0,/^offset-x = .*/s//offset-x = 0/" \
+            "$config" > "$runtime_config_tmp"; then
+            ${pkgs.coreutils}/bin/mv "$runtime_config_tmp" "$runtime_config"
+            config="$runtime_config"
+            echo "polybar runtime geometry: width=$screen_width height=$screen_height x=$screen_x y=$screen_y monitor=$screen_monitor"
+          else
+            ${pkgs.coreutils}/bin/rm -f "$runtime_config_tmp"
+            echo "could not generate runtime polybar config; using source config"
+          fi
+        elif ${pkgs.gnused}/bin/sed -E \
           -e "0,/^width = .*/s//width = $screen_width/" \
           -e "0,/^offset-x = .*/s//offset-x = 0/" \
           "$config" > "$runtime_config_tmp"; then
           ${pkgs.coreutils}/bin/mv "$runtime_config_tmp" "$runtime_config"
           config="$runtime_config"
-          echo "polybar runtime width: $screen_width"
+          echo "polybar runtime geometry: width=$screen_width height=$screen_height x=$screen_x y=$screen_y monitor=auto"
         else
           ${pkgs.coreutils}/bin/rm -f "$runtime_config_tmp"
           echo "could not generate runtime polybar config; using source config"

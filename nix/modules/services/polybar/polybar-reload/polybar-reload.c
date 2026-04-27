@@ -1,4 +1,5 @@
 #include <limits.h>
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
@@ -28,28 +29,33 @@ static int read_root_size(Display *dpy, Window root, struct screen_size *size) {
     return 1;
 }
 
-static int read_stable_root_size(Display *dpy, Window root,
-                                 struct screen_size *size) {
+static int read_settled_root_size(Display *dpy, Window root,
+                                  struct screen_size *size) {
     struct screen_size previous;
     struct screen_size current;
+    int stable_samples = 0;
 
     if (!read_root_size(dpy, root, &previous)) {
         return 0;
     }
 
-    for (int i = 0; i < 8; i++) {
-        usleep(50000);
+    for (int i = 0; i < 40; i++) {
+        usleep(100000);
         if (!read_root_size(dpy, root, &current)) {
             return 0;
         }
 
         if (current.width == previous.width &&
             current.height == previous.height) {
-            *size = current;
-            return 1;
+            stable_samples++;
+        } else {
+            stable_samples = 0;
+            previous = current;
         }
 
-        previous = current;
+        if (stable_samples >= 6) {
+            break;
+        }
     }
 
     *size = previous;
@@ -68,14 +74,23 @@ static void reap_restart_process(pid_t *pid) {
     }
 }
 
-static void restart_polybar(pid_t *pid, struct screen_size size) {
-    reap_restart_process(pid);
-    if (*pid > 0) {
-        fprintf(stderr,
-                "polybar-reload: resize already queued for %dx%d\n",
-                size.width, size.height);
+static void wait_restart_process(pid_t *pid) {
+    if (*pid <= 0) {
         return;
     }
+
+    int status;
+    while (waitpid(*pid, &status, 0) < 0) {
+        if (errno == EINTR) {
+            continue;
+        }
+        break;
+    }
+    *pid = -1;
+}
+
+static void restart_polybar(pid_t *pid, struct screen_size size) {
+    wait_restart_process(pid);
 
     const char *home = getenv("HOME");
     if (home == NULL || home[0] == '\0') {
@@ -170,7 +185,7 @@ int main(void) {
         drain_xrandr_events(dpy, event_base);
 
         struct screen_size next;
-        if (!read_stable_root_size(dpy, root, &next)) {
+        if (!read_settled_root_size(dpy, root, &next)) {
             fprintf(stderr, "polybar-reload: cannot read changed screen size\n");
             continue;
         }
