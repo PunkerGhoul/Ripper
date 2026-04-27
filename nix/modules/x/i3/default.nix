@@ -123,6 +123,23 @@ let
       -m "Exit this i3 session and return to SDDM?" \
       -B "Yes, logout" "${logoutScript}"
   '';
+  polkitAgentStartScript = pkgs.writeShellScript "ripper-polkit-agent-start" ''
+    user_name="''${USER:-$(${pkgs.coreutils}/bin/id -un 2>/dev/null || true)}"
+    if [ -n "$user_name" ] && ${pkgs.procps}/bin/pgrep -u "$user_name" -f 'polkit-gnome-authentication-agent-1' >/dev/null 2>&1; then
+      exit 0
+    fi
+
+    for agent in \
+      ${pkgs.polkit_gnome}/libexec/polkit-gnome-authentication-agent-1 \
+      /usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1 \
+      /usr/lib/policykit-1-gnome/polkit-gnome-authentication-agent-1 \
+      /usr/libexec/polkit-gnome-authentication-agent-1; do
+      if [ -x "$agent" ]; then
+        "$agent" >/dev/null 2>&1 &
+        exit 0
+      fi
+    done
+  '';
   sessionStartScript = ''
     #!${pkgs.runtimeShell}
     set -u
@@ -168,8 +185,9 @@ let
       "$HOME/.local/bin/ripper-picom-start" >/dev/null 2>&1 &
     fi
 
-    [ -x /usr/lib/policykit-1-gnome/polkit-gnome-authentication-agent-1 ] \
-      && /usr/lib/policykit-1-gnome/polkit-gnome-authentication-agent-1 >/dev/null 2>&1 &
+    "$HOME/.local/bin/ripper-polkit-agent-start" >/dev/null 2>&1 \
+      || ${polkitAgentStartScript} >/dev/null 2>&1 \
+      || true
 
     ${pkgs.dunst}/bin/dunst -config "$HOME/.config/dunst/dunstrc" >/dev/null 2>&1 &
     command -v flameshot >/dev/null 2>&1 && flameshot >/dev/null 2>&1 &
@@ -188,6 +206,11 @@ in {
 
     ".local/bin/ripper-i3-floating-toggle" = {
       source = floatingToggleScript;
+      executable = true;
+    };
+
+    ".local/bin/ripper-polkit-agent-start" = {
+      source = polkitAgentStartScript;
       executable = true;
     };
 
