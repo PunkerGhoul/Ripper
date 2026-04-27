@@ -57,33 +57,29 @@ let
         exit 0
       fi
 
+      i3_ready=false
       for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
-        ${pkgs.i3}/bin/i3-msg -t get_workspaces >/dev/null 2>&1 && break
+        if ${pkgs.i3}/bin/i3-msg -t get_workspaces >/dev/null 2>&1; then
+          i3_ready=true
+          break
+        fi
         ${pkgs.coreutils}/bin/sleep 0.05
       done
+      if [ "$i3_ready" != "true" ]; then
+        echo "i3 IPC is not ready; refusing to start polybar outside i3"
+        exit 0
+      fi
 
-      read_geometry() {
-        ${pkgs.xrandr}/bin/xrandr --listactivemonitors 2>/dev/null | ${pkgs.gawk}/bin/awk '
-          NR > 1 && match($0, /([0-9]+)\/[0-9]+x([0-9]+)\/[0-9]+\+(-?[0-9]+)\+(-?[0-9]+)/, m) {
-            print m[1], m[2], m[3], m[4], $NF
-            exit
-          }
+      read_i3_geometry() {
+        ${pkgs.i3}/bin/i3-msg -t get_workspaces 2>/dev/null | ${pkgs.jq}/bin/jq -r '
+          ([.[] | select(.focused)] + [.[] | select(.visible)] + .)[0]
+          | select(.rect.width > 0 and .rect.height > 0)
+          | "\(.rect.width) \(.rect.height) \(.rect.x) \(.rect.y) \(.output // "")"
         '
       }
 
-      read_screen_geometry() {
-        ${pkgs.xrandr}/bin/xrandr --current 2>/dev/null | ${pkgs.gawk}/bin/awk '
-          /^Screen [0-9]+:/ {
-            for (i = 1; i <= NF; i++) {
-              if ($i == "current" && (i + 3) <= NF) {
-                gsub(/,/, "", $(i + 1))
-                gsub(/,/, "", $(i + 3))
-                print $(i + 1), $(i + 3), 0, 0, ""
-                exit
-              }
-            }
-          }
-        '
+      read_geometry() {
+        read_i3_geometry
       }
 
       last_geometry=""
@@ -91,9 +87,6 @@ let
       geometry=""
       for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40; do
         current_geometry="$(read_geometry || true)"
-        if [ -z "$current_geometry" ]; then
-          current_geometry="$(read_screen_geometry || true)"
-        fi
 
         if [ -n "$current_geometry" ] && [ "$current_geometry" = "$last_geometry" ]; then
           stable_samples=$((stable_samples + 1))
@@ -137,7 +130,7 @@ let
             "$config" > "$runtime_config_tmp"; then
             ${pkgs.coreutils}/bin/mv "$runtime_config_tmp" "$runtime_config"
             config="$runtime_config"
-            echo "polybar runtime geometry: width=$screen_width height=$screen_height x=$screen_x y=$screen_y monitor=$screen_monitor"
+            echo "polybar runtime geometry from i3: width=$screen_width height=$screen_height x=$screen_x y=$screen_y monitor=$screen_monitor"
           else
             ${pkgs.coreutils}/bin/rm -f "$runtime_config_tmp"
             echo "could not generate runtime polybar config; using source config"
@@ -154,7 +147,8 @@ let
           echo "could not generate runtime polybar config; using source config"
         fi
       else
-        echo "could not detect XRandR screen width; using source config"
+        echo "could not detect i3 workspace geometry; refusing to start polybar"
+        exit 0
       fi
 
       for _ in 1 2 3 4 5; do
