@@ -32,6 +32,7 @@ let
     chmod 700 "$runtime_dir" 2>/dev/null || true
     log="$runtime_dir/ripper-polybar.log"
     config="$HOME/.config/polybar/${theme}/config.ini"
+    runtime_config="$runtime_dir/ripper-polybar-${theme}.ini"
 
     {
       echo "ripper-polybar-start: $(${pkgs.coreutils}/bin/date)"
@@ -61,12 +62,50 @@ let
         ${pkgs.coreutils}/bin/sleep 0.05
       done
 
+      screen_width="$(${pkgs.xrandr}/bin/xrandr --current 2>/dev/null | ${pkgs.gawk}/bin/awk '
+        /^Screen [0-9]+:/ {
+          for (i = 1; i <= NF; i++) {
+            if ($i == "current" && (i + 1) <= NF) {
+              gsub(/,/, "", $(i + 1))
+              print $(i + 1)
+              exit
+            }
+          }
+        }
+      ')"
+      case "$screen_width" in
+        *[!0-9]*)
+          screen_width=""
+          ;;
+      esac
+
+      if [ -n "$screen_width" ]; then
+        runtime_config_tmp="$runtime_config.$$"
+        if ${pkgs.gnused}/bin/sed -E \
+          -e "0,/^width = .*/s//width = $screen_width/" \
+          -e "0,/^offset-x = .*/s//offset-x = 0/" \
+          "$config" > "$runtime_config_tmp"; then
+          ${pkgs.coreutils}/bin/mv "$runtime_config_tmp" "$runtime_config"
+          config="$runtime_config"
+          echo "polybar runtime width: $screen_width"
+        else
+          ${pkgs.coreutils}/bin/rm -f "$runtime_config_tmp"
+          echo "could not generate runtime polybar config; using source config"
+        fi
+      else
+        echo "could not detect XRandR screen width; using source config"
+      fi
+
       for _ in 1 2 3 4 5; do
         ${pkgs.psmisc}/bin/killall -q polybar 2>/dev/null || true
         for _ in 1 2 3 4 5 6 7 8 9 10; do
           ${pkgs.procps}/bin/pgrep -u "$UID" -x polybar >/dev/null 2>&1 || break
           ${pkgs.coreutils}/bin/sleep 0.05
         done
+        if ${pkgs.procps}/bin/pgrep -u "$UID" -x polybar >/dev/null 2>&1; then
+          ${pkgs.procps}/bin/pkill -KILL -u "$UID" -x polybar 2>/dev/null || true
+          ${pkgs.coreutils}/bin/sleep 0.03
+        fi
 
         ${polybarPackage}/bin/polybar -q top -c "$config" &
         ${polybarPackage}/bin/polybar -q bottom -c "$config" &
