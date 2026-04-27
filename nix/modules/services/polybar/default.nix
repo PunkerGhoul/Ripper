@@ -224,7 +224,8 @@ let
 
     exec 9>"$runtime_dir/ripper-polybar-resize.lock"
     if ! ${pkgs.util-linux}/bin/flock -n 9; then
-      echo "ripper-polybar-resize-watch: already running"
+      echo "ripper-polybar-resize-watch: already running; forcing polybar restart"
+      "$HOME/.local/bin/ripper-polybar-start"
       exit 0
     fi
 
@@ -249,6 +250,7 @@ let
       done
       echo "ripper-polybar-resize-watch: i3 subscription ended; retrying"
       ${pkgs.coreutils}/bin/sleep 0.25
+      "$HOME/.local/bin/ripper-polybar-start"
     done
   '';
 in
@@ -257,6 +259,7 @@ in
     user_name="''${USER:-$(${pkgs.coreutils}/bin/id -un 2>/dev/null || true)}"
     if [ -n "$user_name" ]; then
       ${pkgs.procps}/bin/pkill -u "$user_name" -x polybar-reload 2>/dev/null || true
+      ${pkgs.procps}/bin/pkill -u "$user_name" -f ripper-polybar-resize-watch 2>/dev/null || true
     fi
 
     if [ -n "''${DISPLAY:-}" ] && [ -x "$HOME/.local/bin/ripper-polybar-resize-watch" ]; then
