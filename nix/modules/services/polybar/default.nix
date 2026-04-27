@@ -42,10 +42,9 @@ let
       fi
 
       exec 9>"$runtime_dir/ripper-polybar-start.lock"
-      if ! ${pkgs.util-linux}/bin/flock -n 9; then
-        echo "polybar start already running"
-        exit 0
-      fi
+      echo "waiting for polybar restart lock"
+      ${pkgs.util-linux}/bin/flock 9
+      echo "polybar restart lock acquired"
 
       for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
         [ -r "$config" ] && break
@@ -236,7 +235,7 @@ let
       ${pkgs.coreutils}/bin/sleep 0.1
     done
 
-    "$HOME/.local/bin/ripper-polybar-start" >/dev/null 2>&1 &
+    "$HOME/.local/bin/ripper-polybar-start"
 
     while true; do
       ${pkgs.i3}/bin/i3-msg -t subscribe -m '["output","workspace"]' 2>&1 | while IFS= read -r event; do
@@ -246,7 +245,7 @@ let
             ;;
         esac
         echo "ripper-polybar-resize-watch: i3 event $event"
-        "$HOME/.local/bin/ripper-polybar-start" >/dev/null 2>&1 &
+        "$HOME/.local/bin/ripper-polybar-start"
       done
       echo "ripper-polybar-resize-watch: i3 subscription ended; retrying"
       ${pkgs.coreutils}/bin/sleep 0.25
@@ -260,14 +259,8 @@ in
       ${pkgs.procps}/bin/pkill -u "$user_name" -x polybar-reload 2>/dev/null || true
     fi
 
-    if [ -n "''${DISPLAY:-}" ] && [ -x "$HOME/.local/bin/ripper-polybar-start" ]; then
-      "$HOME/.local/bin/ripper-polybar-start" >/dev/null 2>&1 &
-      if [ -x "$HOME/.local/bin/ripper-polybar-resize-watch" ]; then
-        (
-          ${pkgs.coreutils}/bin/sleep 0.15
-          "$HOME/.local/bin/ripper-polybar-resize-watch" >/dev/null 2>&1
-        ) &
-      fi
+    if [ -n "''${DISPLAY:-}" ] && [ -x "$HOME/.local/bin/ripper-polybar-resize-watch" ]; then
+      "$HOME/.local/bin/ripper-polybar-resize-watch" >/dev/null 2>&1 &
     fi
   '';
 

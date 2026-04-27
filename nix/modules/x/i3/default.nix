@@ -202,11 +202,6 @@ in {
           always = true;
         }
         {
-          command = "$HOME/.local/bin/ripper-polybar-start";
-          notification = false;
-          always = true;
-        }
-        {
           command = "$HOME/.local/bin/ripper-polybar-resize-watch";
           notification = false;
           always = true;
