@@ -1,4 +1,4 @@
-{ config, pkgs, logoutScript ? null, ... }:
+{ config, pkgs, lib, logoutScript ? null, ... }:
 
 let
   theme = "cuts";
@@ -109,6 +109,23 @@ let
   '';
 in
 {
+  home.activation.refresh-polybar-runtime = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    user_name="''${USER:-$(${pkgs.coreutils}/bin/id -un 2>/dev/null || true)}"
+    if [ -n "$user_name" ]; then
+      ${pkgs.procps}/bin/pkill -u "$user_name" -x polybar-reload 2>/dev/null || true
+    fi
+
+    if [ -n "''${DISPLAY:-}" ] && [ -x "$HOME/.local/bin/ripper-polybar-start" ]; then
+      "$HOME/.local/bin/ripper-polybar-start" >/dev/null 2>&1 &
+      if [ -x "$HOME/.local/bin/ripper-polybar-resize-watch" ]; then
+        (
+          ${pkgs.coreutils}/bin/sleep 0.15
+          "$HOME/.local/bin/ripper-polybar-resize-watch" >/dev/null 2>&1
+        ) &
+      fi
+    fi
+  '';
+
   home.packages = [
     pkgs.nerd-fonts.iosevka
     pkgs.nerd-fonts.symbols-only

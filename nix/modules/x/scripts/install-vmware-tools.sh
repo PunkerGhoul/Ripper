@@ -301,7 +301,7 @@ EOF
 fi
 
 unit_exists() {
-  "$systemctl_bin" list-unit-files "$1" 2>/dev/null | {{gnuGrep}}/bin/grep -q "^$1"
+  "$systemctl_bin" list-unit-files "$1" 2>/dev/null | {{gnuGrep}}/bin/grep -Fq "$1"
 }
 
 for svc in ripper-vmtoolsd.service ripper-vmblock-fuse.service "$old_vmblock_mount_unit" open-vm-tools.service vmware.service; do
