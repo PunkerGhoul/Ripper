@@ -1,4 +1,4 @@
-{ config, pkgs, unstable, lib, env, nixGLCommand, ... }:
+{ config, pkgs, unstable, lib, env, installConfig, nixGLCommand, ... }:
 
 let
   logoutScript = pkgs.writeShellScript "ripper-logout" ''
@@ -52,7 +52,7 @@ let
 in
 {
   imports = [
-    (import ./x { inherit config pkgs lib logoutScript; })
+    (import ./x { inherit config pkgs lib installConfig nixGLCommand logoutScript; })
     (import ./programs { inherit config pkgs lib unstable env nixGLCommand; })
     (import ./services { inherit config pkgs lib logoutScript; })
   ];

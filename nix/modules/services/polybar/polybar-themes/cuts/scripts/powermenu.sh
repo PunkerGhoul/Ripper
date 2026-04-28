@@ -33,8 +33,6 @@ for candidate in /usr/bin/systemctl /bin/systemctl; do
 	fi
 done
 
-loginctl_bin="$(host_command /usr/bin/loginctl /bin/loginctl || true)"
-
 show_error() {
 	rofi -no-config -theme "$dir/message.rasi" -e "$1"
 }
@@ -43,14 +41,6 @@ start_polkit_agent() {
 	if [[ -x "$HOME/.local/bin/ripper-polkit-agent-start" ]]; then
 		"$HOME/.local/bin/ripper-polkit-agent-start" >>"$log" 2>&1 || true
 	fi
-}
-
-run_loginctl_action() {
-	if [[ -z "$loginctl_bin" ]]; then
-		return 127
-	fi
-
-	"$loginctl_bin" "$@" >>"$log" 2>&1
 }
 
 run_systemctl_action() {
@@ -65,10 +55,6 @@ run_power_action() {
 	action="$1"
 	: >"$log"
 	start_polkit_agent
-
-	if run_loginctl_action "$action"; then
-		exit 0
-	fi
 
 	if run_systemctl_action "$action"; then
 		exit 0

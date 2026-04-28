@@ -51,6 +51,9 @@ func run(args []string) error {
 		if err := ensureI3lockPam(cfg, false); err != nil {
 			return err
 		}
+		if err := ensurePowerPolkitRule(cfg, false); err != nil {
+			return err
+		}
 		return ensureDisplayManager(cfg, false)
 	case "switch", "apply":
 		cfg, err := ensureInstallConfig()
@@ -62,6 +65,9 @@ func run(args []string) error {
 			return err
 		}
 		if err := ensureI3lockPam(cfg, true); err != nil {
+			return err
+		}
+		if err := ensurePowerPolkitRule(cfg, true); err != nil {
 			return err
 		}
 		if err := runHomeManager(); err != nil {
@@ -186,8 +192,37 @@ func renderInstallConfig(cfg installConfig) string {
     # nvidia = { version = "..."; sha256 = "sha256-..."; };
     wrapper = %q;
   };
+
+  wallpaper = {
+    feh = {
+      enable = true;
+      # Local paths may be strings or Nix paths. URLs must include hash/sha256.
+      source = "$HOME/Pictures/Wallpapers/cyberpunk.jpg";
+      # url = "https://example.com/wallpaper.jpg";
+      # hash = "sha256-...";
+      mode = "center"; # center | fill | max | scale | tile
+    };
+
+    neowall = {
+      enable = false;
+      shaderName = "ripper.glsl";
+      fps = 60;
+      vsync = false;
+      showFps = false;
+      glsl = ''
+        #version 100
+        precision highp float;
+        uniform float iTime;
+        uniform vec2 iResolution;
+        void main() {
+          vec2 uv = gl_FragCoord.xy / iResolution.xy;
+          gl_FragColor = vec4(uv, 0.5 + 0.5 * sin(iTime), 1.0);
+        }
+      '';
+    };
+  };
 }
-`, cfg.Username, cfg.HomeDirectory, cfg.System, cfg.Distro, cfg.StateVersion, cfg.GPUWrapper)
+	`, cfg.Username, cfg.HomeDirectory, cfg.System, cfg.Distro, cfg.StateVersion, cfg.GPUWrapper)
 }
 
 func runHomeManager() error {
@@ -510,6 +545,59 @@ account include common-account
 password include common-password
 session include common-session
 `
+}
+
+func ensurePowerPolkitRule(cfg installConfig, apply bool) error {
+	const rulePath = "/etc/polkit-1/rules.d/49-ripper-power.rules"
+	expected := powerPolkitRule(cfg.Username)
+	current, err := os.ReadFile(rulePath)
+	if err == nil && strings.TrimSpace(string(current)) == strings.TrimSpace(expected) {
+		fmt.Println("Power polkit rule already configured:", rulePath)
+		return nil
+	}
+	if err == nil && len(current) > 0 && !strings.Contains(string(current), "Managed by Ripper") {
+		fmt.Println("Power polkit rule exists and is not managed by Ripper:", rulePath)
+		return nil
+	}
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		return fmt.Errorf("read %s: %w", rulePath, err)
+	}
+	if !apply {
+		fmt.Println("Power polkit rule would be written:", rulePath)
+		return nil
+	}
+	return writeRootFile(rulePath, expected, "0644")
+}
+
+func powerPolkitRule(username string) string {
+	return fmt.Sprintf(`// Managed by Ripper.
+polkit.addRule(function(action, subject) {
+  var actions = [
+    "org.freedesktop.login1.power-off",
+    "org.freedesktop.login1.power-off-multiple-sessions",
+    "org.freedesktop.login1.power-off-ignore-inhibit",
+    "org.freedesktop.login1.reboot",
+    "org.freedesktop.login1.reboot-multiple-sessions",
+    "org.freedesktop.login1.reboot-ignore-inhibit",
+    "org.freedesktop.login1.suspend",
+    "org.freedesktop.login1.suspend-multiple-sessions",
+    "org.freedesktop.login1.suspend-ignore-inhibit",
+    "org.freedesktop.login1.hibernate",
+    "org.freedesktop.login1.hibernate-multiple-sessions",
+    "org.freedesktop.login1.hibernate-ignore-inhibit",
+    "org.freedesktop.login1.hybrid-sleep",
+    "org.freedesktop.login1.hybrid-sleep-multiple-sessions",
+    "org.freedesktop.login1.hybrid-sleep-ignore-inhibit",
+    "org.freedesktop.login1.suspend-then-hibernate",
+    "org.freedesktop.login1.suspend-then-hibernate-multiple-sessions",
+    "org.freedesktop.login1.suspend-then-hibernate-ignore-inhibit"
+  ];
+
+  if (subject.user == %q && actions.indexOf(action.id) >= 0) {
+    return polkit.Result.YES;
+  }
+});
+`, username)
 }
 
 func currentLoginShell(username string) (string, error) {

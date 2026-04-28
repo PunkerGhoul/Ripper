@@ -1,4 +1,4 @@
-{ config, pkgs, lib, logoutScript, ... }:
+{ config, pkgs, lib, installConfig, nixGLCommand, logoutScript, ... }:
 
 let
   vmwareAutoResize = pkgs.stdenv.mkDerivation {
@@ -181,5 +181,6 @@ in
 
   imports = [
     (import ./i3 { inherit config pkgs lib logoutScript; })
+    (import ./wallpaper { inherit config pkgs lib installConfig nixGLCommand; })
   ];
 }

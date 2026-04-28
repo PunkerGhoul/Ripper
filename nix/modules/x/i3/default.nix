@@ -179,7 +179,7 @@ let
       exit 1
     fi
 
-    ${pkgs.feh}/bin/feh --bg-center --geometry 1920x1080 "$HOME/Pictures/Wallpapers/cyberpunk.jpg" >/dev/null 2>&1 || true
+    "$HOME/.local/bin/ripper-wallpaper-start" >/dev/null 2>&1 || true
 
     if [ -x "$HOME/.local/bin/ripper-picom-start" ]; then
       "$HOME/.local/bin/ripper-picom-start" >/dev/null 2>&1 &
