@@ -2,7 +2,7 @@
 
 let
   # Agente de polkit personalizado para X11 usando lxqt-policykit y overrideAttrs para aplicar el estilo QML
-  lxqtPolicykitStyled = pkgs.lxqt.lxqt-policykit-agent.overrideAttrs (old: {
+  lxqtPolicykitStyled = pkgs.lxqt.lxqt-policykit.overrideAttrs (old: {
     postPatch = (old.postPatch or "") + ''
       cat > src/policykit-agent/main.qml <<'EOF'
       import QtQuick
