@@ -57,4 +57,6 @@ pkgs.runCommand "polybar-theme-${theme}" { } ''
     -e 's@"\$DESKTOP_SESSION" == "i3"@"\$DESKTOP_SESSION" == "i3" || "\$DESKTOP_SESSION" == "ripper"@g' \
     -e 's|i3-msg exit|${logoutScript}|g' \
     -e 's|i3-msg |${pkgs.i3}/bin/i3-msg |g'
+  find $out -type f \( -name "*.sh" -o -name "checkupdates" \) -exec chmod +x {} +
+  chmod +x $out/launch.sh
 ''
