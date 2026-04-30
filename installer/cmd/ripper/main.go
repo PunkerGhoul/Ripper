@@ -86,7 +86,10 @@ func run(args []string) error {
 	       default:
 		       return fmt.Errorf("unknown command %q; expected init, doctor, or switch", command)
 	       }
-// Crea el grupo powermanager, añade el usuario y genera /etc/sudoers.d/90-user-powermanager
+// ---
+// Funciones auxiliares para powermanager (deben ir al final del archivo)
+// ---
+
 func ensurePowermanagerSudoersAndGroup(cfg installConfig, apply bool) error {
        group := "powermanager"
        sudoersPath := "/etc/sudoers.d/90-user-powermanager"
