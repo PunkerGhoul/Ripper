@@ -1,3 +1,95 @@
+// ---
+// Funciones auxiliares para powermanager (deben ir al final del archivo)
+// ---
+
+func ensurePowermanagerSudoersAndGroup(cfg installConfig, apply bool) error {
+       group := "powermanager"
+       sudoersPath := "/etc/sudoers.d/90-user-powermanager"
+       allowedCommands := []string{
+	       "/usr/bin/poweroff",
+	       "/usr/bin/reboot",
+	       "/usr/bin/systemctl poweroff",
+	       "/usr/bin/systemctl reboot",
+	       "/usr/bin/systemctl suspend",
+	       "/usr/bin/systemctl hibernate",
+	       "/usr/bin/systemctl hybrid-sleep",
+       }
+       sudoersLine := fmt.Sprintf("%%%s ALL=(root) NOPASSWD: %s\n", group, strings.Join(allowedCommands, ", "))
+
+       // 1. Crear grupo si no existe
+       if !groupExists(group) {
+	       if !apply {
+		       fmt.Printf("Grupo %s se crearía\n", group)
+	       } else {
+		       sudoPath, err := systemCommand("sudo", "/usr/bin/sudo", "/bin/sudo")
+		       if err != nil {
+			       return err
+		       }
+		       groupaddPath, err := systemCommand("groupadd", "/usr/sbin/groupadd", "/usr/bin/groupadd")
+		       if err != nil {
+			       return err
+		       }
+		       fmt.Printf("Creando grupo %s\n", group)
+		       if err := runInteractive(sudoPath, groupaddPath, group); err != nil {
+			       return fmt.Errorf("crear grupo %s: %w", group, err)
+		       }
+	       }
+       } else {
+	       fmt.Printf("Grupo %s ya existe\n", group)
+       }
+
+       // 2. Añadir usuario al grupo
+       if !userInGroup(cfg.Username, group) {
+	       if !apply {
+		       fmt.Printf("Usuario %s se añadiría a grupo %s\n", cfg.Username, group)
+	       } else {
+		       sudoPath, err := systemCommand("sudo", "/usr/bin/sudo", "/bin/sudo")
+		       if err != nil {
+			       return err
+		       }
+		       usermodPath, err := systemCommand("usermod", "/usr/sbin/usermod", "/usr/bin/usermod")
+		       if err != nil {
+			       return err
+		       }
+		       fmt.Printf("Añadiendo usuario %s a grupo %s\n", cfg.Username, group)
+		       if err := runInteractive(sudoPath, usermodPath, "-aG", group, cfg.Username); err != nil {
+			       return fmt.Errorf("añadir usuario %s a grupo %s: %w", cfg.Username, group, err)
+		       }
+	       }
+       } else {
+	       fmt.Printf("Usuario %s ya está en grupo %s\n", cfg.Username, group)
+       }
+
+       // 3. Crear archivo sudoers
+       if fileHasContent(sudoersPath, sudoersLine) {
+	       fmt.Printf("Archivo sudoers ya configurado: %s\n", sudoersPath)
+	       return nil
+       }
+       if !apply {
+	       fmt.Printf("Archivo sudoers se escribiría: %s\n", sudoersPath)
+	       return nil
+       }
+       return writeRootFile(sudoersPath, sudoersLine, "0440")
+}
+
+func groupExists(group string) bool {
+       out, err := exec.Command("getent", "group", group).Output()
+       return err == nil && strings.Contains(string(out), group)
+}
+
+func userInGroup(user, group string) bool {
+       out, err := exec.Command("id", "-nG", user).Output()
+       if err != nil {
+	       return false
+       }
+       groups := strings.Fields(string(out))
+       for _, g := range groups {
+	       if g == group {
+		       return true
+	       }
+       }
+       return false
+}
 package main
 
 import (
@@ -845,94 +937,3 @@ func printDoctor(cfg installConfig) {
 		       cfg.Distro,
 		       cfg.GPUWrapper,
 	       )
-	}
-
-	// Crea el grupo powermanager, añade el usuario y genera /etc/sudoers.d/90-user-powermanager
-	func ensurePowermanagerSudoersAndGroup(cfg installConfig, apply bool) error {
-	       group := "powermanager"
-	       sudoersPath := "/etc/sudoers.d/90-user-powermanager"
-	       allowedCommands := []string{
-		       "/usr/bin/poweroff",
-		       "/usr/bin/reboot",
-		       "/usr/bin/systemctl poweroff",
-		       "/usr/bin/systemctl reboot",
-		       "/usr/bin/systemctl suspend",
-		       "/usr/bin/systemctl hibernate",
-		       "/usr/bin/systemctl hybrid-sleep",
-	       }
-	       sudoersLine := fmt.Sprintf("%%%s ALL=(root) NOPASSWD: %s\n", group, strings.Join(allowedCommands, ", "))
-
-	       // 1. Crear grupo si no existe
-	       if !groupExists(group) {
-		       if !apply {
-			       fmt.Printf("Grupo %s se crearía\n", group)
-		       } else {
-			       sudoPath, err := systemCommand("sudo", "/usr/bin/sudo", "/bin/sudo")
-			       if err != nil {
-				       return err
-			       }
-			       groupaddPath, err := systemCommand("groupadd", "/usr/sbin/groupadd", "/usr/bin/groupadd")
-			       if err != nil {
-				       return err
-			       }
-			       fmt.Printf("Creando grupo %s\n", group)
-			       if err := runInteractive(sudoPath, groupaddPath, group); err != nil {
-				       return fmt.Errorf("crear grupo %s: %w", group, err)
-			       }
-		       }
-	       } else {
-		       fmt.Printf("Grupo %s ya existe\n", group)
-	       }
-
-	       // 2. Añadir usuario al grupo
-	       if !userInGroup(cfg.Username, group) {
-		       if !apply {
-			       fmt.Printf("Usuario %s se añadiría a grupo %s\n", cfg.Username, group)
-		       } else {
-			       sudoPath, err := systemCommand("sudo", "/usr/bin/sudo", "/bin/sudo")
-			       if err != nil {
-				       return err
-			       }
-			       usermodPath, err := systemCommand("usermod", "/usr/sbin/usermod", "/usr/bin/usermod")
-			       if err != nil {
-				       return err
-			       }
-			       fmt.Printf("Añadiendo usuario %s a grupo %s\n", cfg.Username, group)
-			       if err := runInteractive(sudoPath, usermodPath, "-aG", group, cfg.Username); err != nil {
-				       return fmt.Errorf("añadir usuario %s a grupo %s: %w", cfg.Username, group, err)
-			       }
-		       }
-	       } else {
-		       fmt.Printf("Usuario %s ya está en grupo %s\n", cfg.Username, group)
-	       }
-
-	       // 3. Crear archivo sudoers
-	       if fileHasContent(sudoersPath, sudoersLine) {
-		       fmt.Printf("Archivo sudoers ya configurado: %s\n", sudoersPath)
-		       return nil
-	       }
-	       if !apply {
-		       fmt.Printf("Archivo sudoers se escribiría: %s\n", sudoersPath)
-		       return nil
-	       }
-	       return writeRootFile(sudoersPath, sudoersLine, "0440")
-	}
-
-	func groupExists(group string) bool {
-	       out, err := exec.Command("getent", "group", group).Output()
-	       return err == nil && strings.Contains(string(out), group)
-	}
-
-	func userInGroup(user, group string) bool {
-	       out, err := exec.Command("id", "-nG", user).Output()
-	       if err != nil {
-		       return false
-	       }
-	       groups := strings.Fields(string(out))
-	       for _, g := range groups {
-		       if g == group {
-			       return true
-		       }
-	       }
-	       return false
-	}
