@@ -1,6 +1,26 @@
-// ---
-// Funciones auxiliares para powermanager (deben ir al final del archivo)
-// ---
+package main
+
+import (
+	"errors"
+	"fmt"
+	"os"
+	"os/exec"
+	"os/user"
+	"path/filepath"
+	"runtime"
+	"strings"
+)
+
+type installConfig struct {
+	Username      string
+	HomeDirectory string
+	System        string
+	Distro        string
+	GPUWrapper    string
+	StateVersion  string
+	ConfigPath    string
+	Existing      bool
+}
 
 func ensurePowermanagerSudoersAndGroup(cfg installConfig, apply bool) error {
        group := "powermanager"
@@ -89,29 +109,6 @@ func userInGroup(user, group string) bool {
 	       }
        }
        return false
-}
-package main
-
-import (
-	"errors"
-	"fmt"
-	"os"
-	"os/exec"
-	"os/user"
-	"path/filepath"
-	"runtime"
-	"strings"
-)
-
-type installConfig struct {
-	Username      string
-	HomeDirectory string
-	System        string
-	Distro        string
-	GPUWrapper    string
-	StateVersion  string
-	ConfigPath    string
-	Existing      bool
 }
 
 func main() {
