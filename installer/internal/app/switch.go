@@ -1,10 +1,10 @@
 package app
 
 import (
-	"installer/internal/config"
-	"installer/internal/services"
-	"installer/internal/services/homemanager"
-	"installer/internal/ui"
+	"ripper/installer/internal/config"
+	"ripper/installer/internal/services"
+	"ripper/installer/internal/services/homemanager"
+	"ripper/installer/internal/ui"
 )
 
 func runSwitch() error {

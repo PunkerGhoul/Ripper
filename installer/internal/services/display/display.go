@@ -3,8 +3,8 @@ package display
 import (
 	"strings"
 
-	"installer/internal/config"
-	"installer/internal/system"
+	"ripper/installer/internal/config"
+	"ripper/installer/internal/system"
 )
 
 // EnsureDisplayManager orquesta todo el setup de SDDM

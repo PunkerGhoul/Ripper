@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"installer/internal/config"
-	"installer/internal/system"
+	"ripper/installer/internal/config"
+	"ripper/installer/internal/system"
 )
 
 func Ensure(cfg config.InstallConfig, apply bool) error {

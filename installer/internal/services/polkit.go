@@ -6,8 +6,8 @@ import (
 	"os"
 	"strings"
 
-	"installer/internal/config"
-	"installer/internal/system"
+	"ripper/installer/internal/config"
+	"ripper/installer/internal/system"
 )
 
 const polkitRulePath = "/etc/polkit-1/rules.d/49-ripper-power.rules"

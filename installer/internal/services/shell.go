@@ -3,8 +3,8 @@ package services
 import (
 	"fmt"
 
-	"installer/internal/config"
-	"installer/internal/system"
+	"ripper/installer/internal/config"
+	"ripper/installer/internal/system"
 )
 
 func EnsureLoginShell(cfg config.InstallConfig, apply bool) error {

@@ -6,9 +6,9 @@ import (
 	"os"
 	"strings"
 
-	"installer/internal/config"
-	"installer/internal/system"
-	"installer/internal/util"
+	"ripper/installer/internal/config"
+	"ripper/installer/internal/system"
+	"ripper/installer/internal/util"
 )
 
 const sddmConfigPath = "/etc/sddm.conf.d/99-ripper.conf"

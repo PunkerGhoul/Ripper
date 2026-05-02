@@ -3,7 +3,7 @@ package ui
 import (
 	"fmt"
 
-	"installer/internal/config"
+	"ripper/installer/internal/config"
 )
 
 func PrintDoctor(cfg config.InstallConfig) {

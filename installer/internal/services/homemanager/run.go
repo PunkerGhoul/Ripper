@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 
-	"installer/internal/config"
-	"installer/internal/system"
+	"ripper/installer/internal/config"
+	"ripper/installer/internal/system"
 )
 
 // Run aplica el switch de Home Manager

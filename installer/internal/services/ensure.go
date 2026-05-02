@@ -1,9 +1,9 @@
 package services
 
 import (
-	"installer/internal/config"
-	"installer/internal/services/display"
-	"installer/internal/services/powermanager"
+	"ripper/installer/internal/config"
+	"ripper/installer/internal/services/display"
+	"ripper/installer/internal/services/powermanager"
 )
 
 func EnsureDisplayManager(cfg config.InstallConfig, apply bool) (map[string]string, error) {

@@ -1,9 +1,9 @@
 package app
 
 import (
-	"installer/internal/config"
-	"installer/internal/services"
-	"installer/internal/ui"
+	"ripper/installer/internal/config"
+	"ripper/installer/internal/services"
+	"ripper/installer/internal/ui"
 )
 
 func runDoctor() error {

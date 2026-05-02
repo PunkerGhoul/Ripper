@@ -3,8 +3,8 @@ package services
 import (
 	"fmt"
 
-	"installer/internal/config"
-	"installer/internal/system"
+	"ripper/installer/internal/config"
+	"ripper/installer/internal/system"
 )
 
 func pamConfig(distro string) string {

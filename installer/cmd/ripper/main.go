@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"installer/internal/app"
+	"ripper/installer/internal/app"
 )
 
 func main() {

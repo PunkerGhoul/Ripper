@@ -1,6 +1,6 @@
 package services
 
-import "installer/internal/config"
+import "ripper/installer/internal/config"
 
 func RunDoctor(cfg config.InstallConfig) error {
 	if err := EnsureLoginShell(cfg, false); err != nil {

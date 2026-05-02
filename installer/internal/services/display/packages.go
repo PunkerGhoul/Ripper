@@ -3,7 +3,7 @@ package display
 import (
 	"fmt"
 
-	"installer/internal/system"
+	"ripper/installer/internal/system"
 )
 
 // EnsureDisplayManagerPackages instala paquetes requeridos según distro.

@@ -1,6 +1,6 @@
 package app
 
-import "installer/internal/config"
+import "ripper/installer/internal/config"
 
 func runInit() error {
 	_, err := config.EnsureInstallConfig()
