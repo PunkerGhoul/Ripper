@@ -38,6 +38,15 @@ func EnsureDisplayManagerPackages(distro string, apply bool) (string, error) {
 			return "", err
 		}
 
+		systemctlPath, err := system.ResolveCommand("systemctl", "/usr/bin/systemctl", "/bin/systemctl")
+		if err != nil {
+			return "", err
+		}
+
+		if err := system.RunInteractive(sudoPath, systemctlPath, "enable", "--now", "polkit"); err != nil {
+			return "", fmt.Errorf("enable polkit.service failed: %w", err)
+		}
+
 		return "installed_debian", nil
 
 	case "arch":
@@ -58,6 +67,15 @@ func EnsureDisplayManagerPackages(distro string, apply bool) (string, error) {
 			"dbus",
 		); err != nil {
 			return "", err
+		}
+
+		systemctlPath, err := system.ResolveCommand("systemctl", "/usr/bin/systemctl", "/bin/systemctl")
+		if err != nil {
+			return "", err
+		}
+
+		if err := system.RunInteractive(sudoPath, systemctlPath, "enable", "--now", "polkit"); err != nil {
+			return "", fmt.Errorf("enable polkit.service failed: %w", err)
 		}
 
 		return "installed_arch", nil
