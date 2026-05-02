@@ -20,3 +20,8 @@ func run(args []string) error {
 			return fmt.Errorf("unknown command %q; expected init, doctor, or switch", command)
 	}
 }
+
+// Run is the exported entrypoint for the CLI.
+func Run(args []string) error {
+	return run(args)
+}
