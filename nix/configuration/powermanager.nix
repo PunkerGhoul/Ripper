@@ -2,9 +2,10 @@
 
 let
   install = import ../../local/install.nix;
-  user = install.user;
-  group = "powermanager";
+  user = install.username or install.user;
 in
 {
-  users.users.${user}.extraGroups = [ group ];
+  home.activation.powermanager = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    echo "powermanager is managed by the installer for ${user}"
+  '';
 }
