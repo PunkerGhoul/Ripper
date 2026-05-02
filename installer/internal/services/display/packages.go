@@ -14,21 +14,14 @@ func EnsureDisplayManagerPackages(distro string, apply bool) (string, error) {
 		return "", err
 	}
 
-	systemctlPath, err := system.ResolveCommand("systemctl", "/usr/bin/systemctl", "/bin/systemctl")
-	if err != nil {
-		return "", err
-	}
-
-	// Siempre asegurar que polkit esté habilitado
-	if apply {
-		if err := system.RunInteractive(sudoPath, systemctlPath, "enable", "--now", "polkit"); err != nil {
-			return "", fmt.Errorf("enable polkit.service failed: %w", err)
-		}
-	}
-
 	switch distro {
 	case "debian":
 		aptPath, err := system.ResolveCommand("apt", "/usr/bin/apt", "/bin/apt")
+		if err != nil {
+			return "", err
+		}
+
+		systemctlPath, err := system.ResolveCommand("systemctl", "/usr/bin/systemctl", "/bin/systemctl")
 		if err != nil {
 			return "", err
 		}
@@ -58,6 +51,11 @@ func EnsureDisplayManagerPackages(distro string, apply bool) (string, error) {
 
 	case "arch":
 		pacmanPath, err := system.ResolveCommand("pacman", "/usr/bin/pacman", "/bin/pacman")
+		if err != nil {
+			return "", err
+		}
+
+		systemctlPath, err := system.ResolveCommand("systemctl", "/usr/bin/systemctl", "/bin/systemctl")
 		if err != nil {
 			return "", err
 		}
