@@ -9,6 +9,7 @@ import (
 func PrintDoctor(cfg config.InstallConfig) {
 	if cfg.Existing {
 		fmt.Printf("Ripper profile: using existing declaration %s\n", cfg.ConfigPath)
+		fmt.Println("Power actions: installer will manage polkit and power rules during switch")
 		return
 	}
 
@@ -20,4 +21,5 @@ func PrintDoctor(cfg config.InstallConfig) {
 		cfg.Distro,
 		cfg.GPUWrapper,
 	)
+	fmt.Println("Power actions: installer will manage polkit and power rules during switch")
 }

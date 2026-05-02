@@ -31,6 +31,7 @@ func EnsureDisplayManagerPackages(distro string, apply bool) (string, error) {
 
 		if err := system.RunInteractive(sudoPath, aptPath, "install", "-y",
 			"sddm",
+			"polkit",
 			"xorg",
 			"dbus-x11",
 		); err != nil {
@@ -51,6 +52,7 @@ func EnsureDisplayManagerPackages(distro string, apply bool) (string, error) {
 
 		if err := system.RunInteractive(sudoPath, pacmanPath, "-Syu", "--needed", "--noconfirm",
 			"sddm",
+			"polkit",
 			"xorg-server",
 			"xorg-xauth",
 			"dbus",
