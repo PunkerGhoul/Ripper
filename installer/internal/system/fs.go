@@ -33,12 +33,12 @@ func missingHostPaths(paths ...string) []string {
 }
 
 func WriteRootFile(path string, content string, mode string) error {
-	sudoPath, err := systemCommand("sudo", "/usr/bin/sudo", "/bin/sudo")
+	sudoPath, err := ResolveCommand("sudo", "/usr/bin/sudo", "/bin/sudo")
 	if err != nil {
 		return err
 	}
 
-	shPath, err := systemCommand("sh", "/bin/sh", "/usr/bin/sh")
+	shPath, err := ResolveCommand("sh", "/bin/sh", "/usr/bin/sh")
 	if err != nil {
 		return err
 	}

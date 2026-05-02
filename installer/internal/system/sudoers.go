@@ -3,6 +3,7 @@ package system
 import (
 	"fmt"
 	"os/exec"
+	"strings"
 )
 
 // WriteSudoers escribe un archivo sudoers con permisos correctos (0440)

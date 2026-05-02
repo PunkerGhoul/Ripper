@@ -8,7 +8,7 @@ import (
 )
 
 func EnsureInstallConfig() (InstallConfig, error) {
-	repoRoot, err := repoRoot()
+	repoRoot, err := RepoRoot()
 	if err != nil {
 		return InstallConfig{}, err
 	}

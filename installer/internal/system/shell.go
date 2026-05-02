@@ -24,12 +24,12 @@ func EnsureShellListed(shellPath string) error {
 }
 
 func appendShell(shellPath string) error {
-	sudoPath, err := systemCommand("sudo", "/usr/bin/sudo", "/bin/sudo")
+	sudoPath, err := ResolveCommand("sudo", "/usr/bin/sudo", "/bin/sudo")
 	if err != nil {
 		return err
 	}
 
-	shPath, err := systemCommand("sh", "/bin/sh", "/usr/bin/sh")
+	shPath, err := ResolveCommand("sh", "/bin/sh", "/usr/bin/sh")
 	if err != nil {
 		return err
 	}
@@ -55,12 +55,12 @@ func appendShell(shellPath string) error {
 }
 
 func ChangeLoginShell(username, shellPath string) error {
-	sudoPath, err := systemCommand("sudo", "/usr/bin/sudo", "/bin/sudo")
+	sudoPath, err := ResolveCommand("sudo", "/usr/bin/sudo", "/bin/sudo")
 	if err != nil {
 		return err
 	}
 
-	chshPath, err := systemCommand("chsh", "/usr/bin/chsh", "/bin/chsh")
+	chshPath, err := ResolveCommand("chsh", "/usr/bin/chsh", "/bin/chsh")
 	if err != nil {
 		return err
 	}
