@@ -23,15 +23,15 @@ func EnsureDisplayManager(cfg config.InstallConfig, apply bool) (map[string]stri
 		}
 	}
 
-	// --- paquetes ---
+	// --- paquetes (siempre ejecutar para asegurar polkit) ---
+	state, err := EnsureDisplayManagerPackages(cfg.Distro, apply)
+	if err != nil {
+		return nil, err
+	}
 	if needsInstall {
-		state, err := EnsureDisplayManagerPackages(cfg.Distro, apply)
-		if err != nil {
-			return nil, err
-		}
 		result["packages"] = state + ":" + strings.Join(missing, ",")
 	} else {
-		result["packages"] = "already_installed"
+		result["packages"] = state + ":polkit_ensured"
 	}
 
 	// --- sesión ---

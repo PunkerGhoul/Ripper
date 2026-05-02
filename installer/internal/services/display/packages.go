@@ -6,12 +6,24 @@ import (
 	"ripper/installer/internal/system"
 )
 
-// EnsureDisplayManagerPackages instala paquetes requeridos según distro.
-// Devuelve estado semántico.
+// EnsureDisplayManagerPackages instala y asegura paquetes requeridos según distro.
+// Siempre asegura que polkit esté instalado y habilitado.
 func EnsureDisplayManagerPackages(distro string, apply bool) (string, error) {
 	sudoPath, err := system.ResolveCommand("sudo", "/usr/bin/sudo", "/bin/sudo")
 	if err != nil {
 		return "", err
+	}
+
+	systemctlPath, err := system.ResolveCommand("systemctl", "/usr/bin/systemctl", "/bin/systemctl")
+	if err != nil {
+		return "", err
+	}
+
+	// Siempre asegurar que polkit esté habilitado
+	if apply {
+		if err := system.RunInteractive(sudoPath, systemctlPath, "enable", "--now", "polkit"); err != nil {
+			return "", fmt.Errorf("enable polkit.service failed: %w", err)
+		}
 	}
 
 	switch distro {
@@ -38,16 +50,11 @@ func EnsureDisplayManagerPackages(distro string, apply bool) (string, error) {
 			return "", err
 		}
 
-		systemctlPath, err := system.ResolveCommand("systemctl", "/usr/bin/systemctl", "/bin/systemctl")
-		if err != nil {
-			return "", err
-		}
-
 		if err := system.RunInteractive(sudoPath, systemctlPath, "enable", "--now", "polkit"); err != nil {
 			return "", fmt.Errorf("enable polkit.service failed: %w", err)
 		}
 
-		return "installed_debian", nil
+		return "configured_debian", nil
 
 	case "arch":
 		pacmanPath, err := system.ResolveCommand("pacman", "/usr/bin/pacman", "/bin/pacman")
@@ -69,16 +76,11 @@ func EnsureDisplayManagerPackages(distro string, apply bool) (string, error) {
 			return "", err
 		}
 
-		systemctlPath, err := system.ResolveCommand("systemctl", "/usr/bin/systemctl", "/bin/systemctl")
-		if err != nil {
-			return "", err
-		}
-
 		if err := system.RunInteractive(sudoPath, systemctlPath, "enable", "--now", "polkit"); err != nil {
 			return "", fmt.Errorf("enable polkit.service failed: %w", err)
 		}
 
-		return "installed_arch", nil
+		return "configured_arch", nil
 
 	default:
 		return "", fmt.Errorf(
