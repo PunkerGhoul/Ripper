@@ -12,4 +12,10 @@
     (import ./tmux { inherit pkgs; })
     (import ./zsh { inherit config pkgs lib; })
   ];
+
+  options.ripper.programs.utilities.packages = lib.mkOption {
+    type = with lib.types; listOf package;
+    default = [ pkgs.sage ];
+    description = "Packages provided by utility program modules.";
+  };
 }

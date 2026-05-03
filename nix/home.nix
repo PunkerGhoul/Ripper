@@ -50,7 +50,7 @@ in {
     # (pkgs.writeShellScriptBin "my-hello" ''
     #   echo "Hello, ${config.home.username}!"
     # '')
-  ];
+  ] ++ config.ripper.programs.packages;
 
   # Home Manager Extra directories to prepend to PATH.
   # # These directories are added to the PATH variable in a double-quoted context, so expressions like $HOME are expanded by the shell.
@@ -116,12 +116,14 @@ in {
   # Let Home Manager install and manage itself.
   programs.home-manager.enable = true;
 
-  fonts.fontconfig.enable = true;
-  fonts.fontconfig.defaultFonts = {
-    serif = [ "Hack Nerd Font" ];
-    sansSerif = [ "Hack Nerd Font" ];
-    monospace = [ "Hack Nerd Font" ];
-    emoji = [ "Hack Nerd Font" ];
+  fonts.fontconfig = {
+    enable = true;
+        defaultFonts = {
+        serif = [ "Hack Nerd Font" ];
+        sansSerif = [ "Hack Nerd Font" ];
+        monospace = [ "Hack Nerd Font" ];
+        emoji = [ "Hack Nerd Font" ];
+    };
   };
 
   imports = [

@@ -1,5 +1,5 @@
 { pkgs, ... }:
 
 {
-  home.packages = [ pkgs.logseq ];
+  ripper.programs.utilities.packages = [ pkgs.logseq ];
 }
