@@ -99,8 +99,9 @@ void PolicykitAgent::initiateAuthentication(const QString &actionId,
     m_gui = new PolicykitAgentGUI(actionId, message, iconName, details, identities);
     if (m_gui != nullptr)
     {
-        m_gui->errorLabel->clear();
-        m_gui->errorLabel->setVisible(false);
+        m_gui->errorLabel->setStyleSheet(QStringLiteral("QLabel { color: transparent; background: transparent; }"));
+        m_gui->errorLabel->setText(QStringLiteral(" "));
+        m_gui->errorLabel->setVisible(true);
         m_gui->descriptionLabel->setText(tr("An application is attempting to perform an action that requires privileges. Authentication is required to perform this action"));
     }
 
@@ -161,6 +162,7 @@ void PolicykitAgent::completed(bool gainedAuthorization)
     {
         if (!gainedAuthorization)
         {
+            m_gui->errorLabel->setStyleSheet(QStringLiteral("QLabel { color: #ff9db2; background: transparent; }"));
             m_gui->errorLabel->setText(tr("Authorization failed for some reason"));
             m_gui->errorLabel->setVisible(true);
             m_gui->show();
@@ -184,6 +186,7 @@ void PolicykitAgent::showError(const QString &text)
 {
     if (m_gui != nullptr)
     {
+        m_gui->errorLabel->setStyleSheet(QStringLiteral("QLabel { color: #ff9db2; background: transparent; }"));
         m_gui->errorLabel->setText(text);
         m_gui->errorLabel->setVisible(true);
         m_gui->show();

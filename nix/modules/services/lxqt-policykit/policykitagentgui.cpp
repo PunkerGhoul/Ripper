@@ -193,9 +193,9 @@ PolicykitAgentGUI::PolicykitAgentGUI(const QString &actionId,
     messageLabel->setWordWrap(true);
     descriptionLabel->setWordWrap(true);
     descriptionLabel->setText(tr("An application is attempting to perform an action that requires privileges. Authentication is required to perform this action"));
-    errorLabel->setStyleSheet(QStringLiteral("QLabel { color: #ff9db2; background: transparent; }"));
-    errorLabel->clear();
-    errorLabel->setVisible(false);
+    errorLabel->setStyleSheet(QStringLiteral("QLabel { color: transparent; background: transparent; }"));
+    errorLabel->setText(QStringLiteral(" "));
+    errorLabel->setVisible(true);
 
     const uid_t current_uid = getuid();
     QString selected_identity;
