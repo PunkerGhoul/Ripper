@@ -27,6 +27,7 @@
 
 #define POLKIT_AGENT_I_KNOW_API_IS_SUBJECT_TO_CHANGE 1
 
+#include <QVariant>
 #include <polkitagent/polkitagent.h>
 #include <PolkitQt1/Subject>
 
@@ -120,8 +121,42 @@ void PolicykitAgent::initiateAuthentication(const QString &actionId,
         connect(session, &PolkitQt1::Agent::Session::completed, this, &PolicykitAgent::completed);
         connect(session, &PolkitQt1::Agent::Session::showError, this, &PolicykitAgent::showError);
         connect(session, &PolkitQt1::Agent::Session::showInfo, this, &PolicykitAgent::showInfo);
-        session->initiate();
     }
+
+    connect(m_gui, &QDialog::finished, this, [this, result] (int dialogResult)
+    {
+        if (!m_inProgress || m_gui == nullptr)
+            return;
+
+        if (dialogResult != QDialog::Accepted)
+        {
+            result->setCompleted();
+            m_inProgress = false;
+            m_gui->hide();
+            deleteSessions();
+            return;
+        }
+
+        const QString selectedIdentity = m_gui->identity();
+        for (auto i = m_SessionIdentity.begin(), i_e = m_SessionIdentity.end(); i != i_e; ++i)
+        {
+            if (i.value().toString() == selectedIdentity)
+            {
+                i.key()->setProperty("ripperPendingResponse", m_gui->response());
+                m_gui->hide();
+                i.key()->initiate();
+                return;
+            }
+        }
+
+        result->setCompleted();
+        m_inProgress = false;
+        m_gui->hide();
+        deleteSessions();
+    });
+    m_gui->show();
+    m_gui->activateWindow();
+    m_gui->raise();
 }
 
 bool PolicykitAgent::initiateAuthenticationFinish()
@@ -148,6 +183,14 @@ void PolicykitAgent::request(const QString &request, bool echo)
         return;
 
     m_gui->setPrompt(identity, request, echo);
+    const QVariant pendingResponse = session->property("ripperPendingResponse");
+    if (pendingResponse.isValid())
+    {
+        session->setProperty("ripperPendingResponse", QVariant());
+        session->setResponse(pendingResponse.toString());
+        return;
+    }
+
     disconnect(m_gui, &QDialog::finished, this, nullptr);
     connect(m_gui, &QDialog::finished, this, [this, session] (int result)
     {
@@ -161,7 +204,6 @@ void PolicykitAgent::request(const QString &request, bool echo)
             session->setResponse(m_gui->response());
         else
         {
-            session->result()->setError(tr("Authentication canceled"));
             session->result()->setCompleted();
             m_inProgress = false;
             m_gui->hide();
