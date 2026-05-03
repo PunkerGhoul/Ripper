@@ -24,7 +24,7 @@ float fbm(vec2 p) {
     float a = 0.5;
     mat2 rot = mat2(0.80, -0.60, 0.60, 0.80);
 
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < 3; i++) {
         v += a * noise(p);
         p = rot * p * 2.05 + 17.3;
         a *= 0.5;

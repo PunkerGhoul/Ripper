@@ -106,8 +106,8 @@ let
     default {
       shader ${neowallShaderName}
       shader_speed ${toString (neowall.speed or 1.0)}
-      shader_fps ${toString (neowall.fps or 24)}
-      vsync ${lib.boolToString (neowall.vsync or true)}
+      shader_fps ${toString (neowall.fps or 30)}
+      vsync ${lib.boolToString (neowall.vsync or false)}
       show_fps ${lib.boolToString (neowall.showFps or false)}
     }
   '';
@@ -128,6 +128,12 @@ let
 
     if [ -z "''${XAUTHORITY:-}" ] && [ -r "$HOME/.Xauthority" ]; then
       export XAUTHORITY="$HOME/.Xauthority"
+    fi
+
+    xdotool_bin="${pkgs.xdotool}/bin/xdotool"
+    focusedwindow=""
+    if command -v "$xdotool_bin" >/dev/null 2>&1; then
+      focusedwindow=$($xdotool_bin getactivewindow 2>/dev/null || echo "")
     fi
 
     expand_wallpaper_path() {
@@ -169,22 +175,66 @@ let
 
       if kill -0 "$pid" 2>/dev/null; then
         echo "ripper-wallpaper: neowall is running"
-        return 0
+      else
+        if wait "$pid"; then
+          echo "ripper-wallpaper: neowall started"
+        fi
       fi
-
-      if wait "$pid"; then
-        echo "ripper-wallpaper: neowall started"
-        return 0
-      fi
-
-      status="$?"
-      echo "ripper-wallpaper: neowall failed with status $status"
-      return "$status"
     }
 
-    if start_neowall; then
-      exit 0
+    # start and preserve focus
+    echo "ripper-wallpaper: launching neowall (preserve focus)"
+    start_neowall || true
+
+    # restore previously focused window if xdotool is available
+    if command -v "$xdotool_bin" >/dev/null 2>&1 && [ -n "$focusedwindow" ]; then
+      [ "$focusedwindow" = "$($xdotool_bin getactivewindow 2>/dev/null || echo "")" ] && $xdotool_bin windowfocus $focusedwindow || true
     fi
+
+    # monitor mouse movement and enforce minimum FPS (20 idle, 30 active)
+    monitor_mouse_and_manage_neowall() {
+      [ "${lib.boolToString neowallEnable}" = "true" ] || return 0
+      xdotool_bin="${pkgs.xdotool}/bin/xdotool"
+      prevx=0; prevy=0; first=1; idle_count=0; fps=30
+
+      while true; do
+        if ! command -v "$xdotool_bin" >/dev/null 2>&1; then
+          sleep 5
+          continue
+        fi
+        eval $($xdotool_bin getmouselocation --shell 2>/dev/null || echo "X=0 Y=0")
+        if [ "$first" -eq 1 ]; then prevx=$X; prevy=$Y; first=0; fi
+        dx=$(( X - prevx )); dy=$(( Y - prevy ))
+        prevx=$X; prevy=$Y
+        
+        # simulate micro-movement to keep neowall "awake" (prevents adaptive FPS drop)
+        $xdotool_bin mousemove_relative 0 0 2>/dev/null || true
+        
+        if [ "$dx" -eq 0 ] && [ "$dy" -eq 0 ]; then
+          idle_count=$((idle_count + 1))
+        else
+          idle_count=0
+        fi
+        if [ "$idle_count" -gt 4 ]; then desired_fps=20; else desired_fps=30; fi
+        if [ "$desired_fps" -ne "$fps" ]; then
+          fps="$desired_fps"
+          cat >"$HOME/.config/neowall/config.vibe" <<EOF
+default {
+  shader ${neowallShaderName}
+  shader_speed ${toString (neowall.speed or 1.0)}
+  shader_fps $desired_fps
+  vsync false
+  show_fps ${lib.boolToString (neowall.showFps or false)}
+}
+EOF
+          ${neowallPackage}/bin/neowall kill >/dev/null 2>&1 || true
+          ${pkgs.coreutils}/bin/nice -n ${toString (neowall.nice or 10)} ${neowallPackage}/bin/neowall &
+          sleep 0.35
+        fi
+        sleep 0.6
+      done
+    }
+    monitor_mouse_and_manage_neowall &
 
     apply_feh_wallpaper || true
   '';
@@ -192,7 +242,7 @@ in
 {
   home.packages =
     lib.optionals fehEnable [ pkgs.feh ]
-    ++ lib.optionals neowallEnable [ neowallPackage ];
+    ++ lib.optionals neowallEnable [ neowallPackage pkgs.xdotool ];
 
   home.file =
     {
