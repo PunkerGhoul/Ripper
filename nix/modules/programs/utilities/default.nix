@@ -5,6 +5,7 @@
     (import ./bat { inherit pkgs; })
     (import ./git { inherit pkgs env; })
     (import ./jq { inherit pkgs; })
+    (import ./go { inherit pkgs; })
     (import ./kitty { inherit config pkgs unstable nixGLCommand; })
     (import ./logseq { inherit pkgs; })
     (import ./neovim { inherit pkgs unstable; })
