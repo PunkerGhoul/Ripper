@@ -55,7 +55,7 @@ PolicykitAgentGUI::PolicykitAgentGUI(const QString &actionId,
     darkPalette.setColor(QPalette::Highlight, QColor("#9b74ff"));
     darkPalette.setColor(QPalette::HighlightedText, QColor("#ffffff"));
     setPalette(darkPalette);
-    setStyleSheet(
+    setStyleSheet(QStringLiteral(
         "QDialog { background-color: #1f2432; }"
         "QLabel { color: #e9eeff; }"
         "QComboBox, QLineEdit { background-color: #2b3246; color: #f1f5ff;"
@@ -64,7 +64,7 @@ PolicykitAgentGUI::PolicykitAgentGUI(const QString &actionId,
         " border: 1px solid #8f70df; border-radius: 8px; padding: 6px; }"
         "QPushButton:hover { background-color: #4a3a71; }"
         "QPushButton:pressed { background-color: #2a1f46; }"
-    );
+    ));
 
     messageLabel->setText(message);
     QIcon icon = QIcon::fromTheme(iconName);
