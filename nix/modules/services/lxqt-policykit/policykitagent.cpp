@@ -30,8 +30,6 @@
 #include <polkitagent/polkitagent.h>
 #include <PolkitQt1/Subject>
 
-#include <QMessageBox>
-
 #include "policykitagent.h"
 #include "policykitagentgui.h"
 
@@ -81,7 +79,15 @@ void PolicykitAgent::initiateAuthentication(const QString &actionId,
         if (!m_inProgressAlert)
         {
             m_inProgressAlert = true;
-            QMessageBox::information(nullptr, tr("PolicyKit Information"), info);
+            if (m_gui != nullptr)
+            {
+                m_gui->errorLabel->setStyleSheet(QStringLiteral("QLabel { color: #f3c98b; background: transparent; }"));
+                m_gui->errorLabel->setText(info);
+                m_gui->errorLabel->setVisible(true);
+                m_gui->show();
+                m_gui->activateWindow();
+                m_gui->raise();
+            }
             m_inProgressAlert = false;
         }
         result->setError(info);
@@ -192,21 +198,20 @@ void PolicykitAgent::showError(const QString &text)
         m_gui->show();
         m_gui->activateWindow();
         m_gui->raise();
-        return;
     }
-
-    QMessageBox::warning(nullptr, tr("PolicyKit Error"), text);
 }
 
 void PolicykitAgent::showInfo(const QString &text)
 {
-    m_infobox = new QMessageBox(nullptr);
-    m_infobox->setText(text);
-    m_infobox->setWindowTitle(tr("PolicyKit Information"));
-    m_infobox->setStandardButtons(QMessageBox::Ok);
-    m_infobox->setAttribute(Qt::WA_DeleteOnClose);
-    m_infobox->setModal(false);
-    m_infobox->show();
+    if (m_gui != nullptr)
+    {
+        m_gui->errorLabel->setStyleSheet(QStringLiteral("QLabel { color: #f3c98b; background: transparent; }"));
+        m_gui->errorLabel->setText(text);
+        m_gui->errorLabel->setVisible(true);
+        m_gui->show();
+        m_gui->activateWindow();
+        m_gui->raise();
+    }
 }
 
 } // namespace

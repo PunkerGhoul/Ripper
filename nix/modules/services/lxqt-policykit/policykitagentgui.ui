@@ -10,7 +10,7 @@
     <x>0</x>
     <y>0</y>
     <width>560</width>
-    <height>210</height>
+    <height>260</height>
    </rect>
   </property>
   <layout class="QGridLayout" name="gridLayout">
@@ -65,6 +65,12 @@
      <property name="wordWrap">
       <bool>true</bool>
      </property>
+    <property name="minimumSize">
+     <size>
+      <width>0</width>
+      <height>44</height>
+     </size>
+    </property>
      <property name="font">
       <font>
        <bold>true</bold>
@@ -108,7 +114,7 @@
       <property name="minimumSize">
        <size>
         <width>0</width>
-        <height>24</height>
+        <height>42</height>
        </size>
       </property>
       <property name="wordWrap">
