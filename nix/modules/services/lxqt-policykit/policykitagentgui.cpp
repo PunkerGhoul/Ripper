@@ -34,32 +34,6 @@
 
 namespace
 {
-QPixmap createKeyPixmap(int size)
-{
-    QPixmap pixmap(size, size);
-    pixmap.fill(Qt::transparent);
-
-    QPainter painter(&pixmap);
-    painter.setRenderHint(QPainter::Antialiasing, true);
-    painter.setPen(Qt::NoPen);
-    painter.setBrush(QColor("#a884ff"));
-
-    const int headRadius = size / 5;
-    const int headX = size / 5;
-    const int headY = size / 4;
-    painter.drawEllipse(QRect(headX, headY, headRadius * 2, headRadius * 2));
-
-    const int shaftX = headX + headRadius * 2 - 1;
-    const int shaftY = headY + headRadius - 2;
-    const int shaftHeight = headRadius;
-    painter.drawRoundedRect(QRect(shaftX, shaftY, size - shaftX - size / 8, shaftHeight), 2, 2);
-
-    painter.drawRect(QRect(size - size / 4, shaftY, size / 12, shaftHeight + size / 12));
-    painter.drawRect(QRect(size - size / 6, shaftY, size / 12, shaftHeight + size / 16));
-
-    return pixmap;
-}
-
 QPixmap createLockPixmap(int size)
 {
     QPixmap pixmap(size, size);
@@ -156,9 +130,6 @@ PolicykitAgentGUI::PolicykitAgentGUI(const QString &actionId,
     }
     setProperty("ripperIdentity", selected_identity);
     promptLabel->setText(QCoreApplication::translate("PolicykitAgentGUI", "Password:"));
-    QFont titleFont = messageLabel->font();
-    titleFont.setBold(true);
-    messageLabel->setFont(titleFont);
     passwordEdit->setFocus(Qt::OtherFocusReason);
 }
 
