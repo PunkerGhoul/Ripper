@@ -35,6 +35,7 @@
       indent-blankline-nvim
       jedi-vim
       nvim-cmp
+      nvim-treesitter-textobjects
       nvimTreesitter
       plenary-nvim
       todo-comments-nvim

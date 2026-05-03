@@ -14,7 +14,12 @@
 
   options.ripper.programs.utilities.packages = lib.mkOption {
     type = with lib.types; listOf package;
-    default = [ pkgs.sage pkgs.go pkgs.logseq ];
+    default = [
+        pkgs.sage
+        pkgs.go
+        pkgs.logseq
+        pkgs.openvpn
+    ];
     description = "Packages provided by utility program modules.";
   };
 }

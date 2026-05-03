@@ -72,17 +72,24 @@ vim.cmd("syntax on")
 -- Treesitter Configuration
 -----------------------------------------------------------
 
-local treesitter = optional_require("nvim-treesitter.configs")
-if treesitter then
-  treesitter.setup {
-    auto_install = false,
-    highlight = {
-      enable = true,
-    },
-    indent = {
-      enable = true,
-    },
-  }
+local ok, treesitter = pcall(require, "nvim-treesitter.configs")
+if ok then
+  local status, _ = pcall(function()
+    treesitter.setup {
+      auto_install = false,
+      highlight = {
+        enable = true,
+      },
+      indent = {
+        enable = true,
+      },
+    }
+  end)
+  if not status then
+    vim.notify("Treesitter setup failed", vim.log.levels.WARN)
+  end
+else
+  -- Treesitter not available, but that's okay
 end
 
 -----------------------------------------------------------
