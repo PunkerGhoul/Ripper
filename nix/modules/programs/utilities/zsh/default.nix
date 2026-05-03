@@ -20,6 +20,11 @@ in {
       export PATH="$PATH:$HOME/Documents/Tools"
       export PATH="$PATH:$HOME/.local/bin"
       export FZF_BASE="${pkgs.fzf}/share/fzf"
+
+      # Historial robusto: append incremental + lock para evitar corrupcion
+      export HISTFILE="$ZDOTDIR/.zsh_history"
+      export HISTSIZE=100000
+      export SAVEHIST=100000
     '';
     initContent = lib.mkMerge [
       (lib.mkBefore ''
@@ -36,6 +41,11 @@ in {
         export ZSH_COMPDUMP="$_ripper_zsh_cache_dir/.zcompdump-''${HOST:-unknown}-''${ZSH_VERSION}"
         zstyle ':completion:*' use-cache on
         zstyle ':completion:*' cache-path "$_ripper_zsh_cache_dir/zcompcache"
+
+        # Evita reescrituras completas y habilita lock del historial entre shells concurrentes.
+        setopt APPEND_HISTORY INC_APPEND_HISTORY HIST_FCNTL_LOCK HIST_SAVE_BY_COPY
+        setopt HIST_EXPIRE_DUPS_FIRST HIST_IGNORE_DUPS HIST_IGNORE_SPACE HIST_FIND_NO_DUPS
+        unsetopt SHARE_HISTORY
       '')
       (lib.mkAfter ''
         # Keep the full plugin stack, but compile startup files after the prompt is usable.
