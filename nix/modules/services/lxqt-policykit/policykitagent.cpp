@@ -27,9 +27,9 @@
 
 #define POLKIT_AGENT_I_KNOW_API_IS_SUBJECT_TO_CHANGE 1
 
-#include <QVariant>
 #include <polkitagent/polkitagent.h>
 #include <PolkitQt1/Subject>
+#include <QVariant>
 
 #include "policykitagent.h"
 #include "policykitagentgui.h"
