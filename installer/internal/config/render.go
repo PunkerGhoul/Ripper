@@ -16,7 +16,7 @@ func RenderInstallConfig(cfg InstallConfig) string {
 
   wallpaper = {
     feh = {
-      enable = true;
+      enable = false;
       source = "$HOME/Pictures/Wallpapers/cyberpunk.jpg";
       mode = "center";
     };
@@ -37,34 +37,21 @@ func RenderInstallConfig(cfg InstallConfig) string {
         uniform float iTime;
         uniform vec2 iResolution;
 
-        float proceduralTexture(vec2 p) {
-            float t = iTime * 0.5;
-            float waves =
-                sin(p.x * 7.0 + t) +
-                cos(p.y * 8.0 - t * 1.2) +
-                sin((p.x + p.y) * 5.0 + t * 0.7);
-            float rings = sin(length(p) * 28.0 - t * 2.0);
-            return 0.5 + 0.5 * sin(waves + rings);
-        }
-
         void main() {
             vec2 designResolution = vec2(800.0, 450.0);
-            vec2 fragCoord = (gl_FragCoord.xy - 0.5 * iResolution.xy)
-                / min(iResolution.x / designResolution.x, iResolution.y / designResolution.y)
-                + 0.5 * designResolution;
+            float scale = iResolution.y / designResolution.y;
+            vec2 fragCoord = (gl_FragCoord.xy - 0.5 * iResolution.xy) / scale + 0.5 * designResolution;
             vec2 uv = fragCoord / designResolution;
-
-            float aspect = designResolution.x / designResolution.y;
-            vec2 p = vec2((uv.x - 0.5) * aspect, uv.y - 0.5);
             float t = iTime * 0.5;
 
-            p.x += sin(t + p.y * 10.0) * 0.08;
-            p.y += cos(t + p.x * 10.0) * 0.08;
+            uv.x += sin(t + uv.y * 10.0) * 0.05;
+            uv.y += cos(t + uv.x * 10.0) * 0.05;
 
-            float tex = proceduralTexture(p * 1.8);
-            vec3 col = vec3(0.0, 0.0, tex);
-            col = sin(col + length(col) * 30.0 + t) * 0.5 + 0.5;
-            col = max((col - 0.55) * 2.0, 0.0);
+            vec2 p = (uv - 0.5) * vec2(designResolution.x / designResolution.y, 1.0);
+            float base = sin(p.x * 7.0 + t) + cos(p.y * 9.0 - t) + sin((p.x + p.y) * 6.0 + t * 0.7);
+            float tex = sin(base + length(p) * 30.0) * 0.5 + 0.5;
+            float blue = max((sin(tex * 30.0) * 0.5 + 0.5 - 0.30) * 1.4, 0.0);
+            vec3 col = vec3(0.0, 0.02 * blue, blue);
 
             gl_FragColor = vec4(col, 1.0);
         }
