@@ -228,8 +228,6 @@ void PolicykitAgentGUI::setPromptLabel(const QString &text)
 void PolicykitAgentGUI::setPrompt(const PolkitQt1::Identity &identity, const QString &text, bool echo)
 {
     Q_UNUSED(identity);
-    errorLabel->clear();
-    errorLabel->setVisible(false);
     setPromptLabel(text);
     passwordEdit->setEchoMode(echo ? QLineEdit::Normal : QLineEdit::Password);
 }

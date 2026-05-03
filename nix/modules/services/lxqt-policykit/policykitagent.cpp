@@ -145,8 +145,6 @@ void PolicykitAgent::request(const QString &request, bool echo)
         else
             session->cancel();
     });
-    m_gui->errorLabel->clear();
-    m_gui->errorLabel->setVisible(false);
     m_gui->descriptionLabel->setText(tr("An application is attempting to perform an action that requires privileges. Authentication is required to perform this action"));
     m_gui->show();
     m_gui->activateWindow();
@@ -165,6 +163,9 @@ void PolicykitAgent::completed(bool gainedAuthorization)
         {
             m_gui->errorLabel->setText(tr("Authorization failed for some reason"));
             m_gui->errorLabel->setVisible(true);
+            m_gui->show();
+            m_gui->activateWindow();
+            m_gui->raise();
         }
 
         // Note: the setCompleted() must be called exacly once (as the
@@ -185,6 +186,9 @@ void PolicykitAgent::showError(const QString &text)
     {
         m_gui->errorLabel->setText(text);
         m_gui->errorLabel->setVisible(true);
+        m_gui->show();
+        m_gui->activateWindow();
+        m_gui->raise();
         return;
     }
 
