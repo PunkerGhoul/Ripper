@@ -27,6 +27,7 @@
 
 #include <QIcon>
 #include <QPainter>
+#include <QPainterPath>
 #include <QPixmap>
 #include <QFont>
 #include "policykitagentgui.h"
