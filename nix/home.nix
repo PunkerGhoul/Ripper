@@ -32,6 +32,8 @@ in {
   # The home.packages option allows you to install Nix packages into your
   # environment.
   home.packages = [
+    pkgs.nerd-fonts.hack
+
     # # Adds the 'hello' command to your environment. It prints a friendly
     # # "Hello, world!" when run.
     # pkgs.hello
@@ -48,10 +50,6 @@ in {
     # (pkgs.writeShellScriptBin "my-hello" ''
     #   echo "Hello, ${config.home.username}!"
     # '')
-  ];
-
-  fonts.packages = with pkgs; [
-    nerd-fonts.hack
   ];
 
   # Home Manager Extra directories to prepend to PATH.
