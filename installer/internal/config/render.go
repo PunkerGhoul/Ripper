@@ -31,17 +31,14 @@ func RenderInstallConfig(cfg InstallConfig) string {
       nice = 10;
       glsl = ''precision highp float;
 
-        uniform float iTime;
-        uniform vec2 iResolution;
-
-        void main() {
-            vec2 uv = gl_FragCoord.xy / iResolution.xy;
+        void mainImage(out vec4 fragColor, in vec2 fragCoord) {
+            vec2 uv = fragCoord / iResolution.xy;
             uv.x *= iResolution.x / iResolution.y;
 
             float waveScale = 2.4;
             vec2 wideUv = uv / waveScale;
             vec3 color = 0.5 + 0.5 * cos(iTime + wideUv.xyx + vec3(0.0, 2.0, 4.0));
-            gl_FragColor = vec4(color, 1.0);
+            fragColor = vec4(color, 1.0);
         }
       '';
     };
