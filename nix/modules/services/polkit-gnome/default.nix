@@ -255,6 +255,9 @@ let
   });
 in
 {
+  # Instalar explícitamente el agente LXQt (no GNOME)
+  home.packages = [ lxqtPolicykitStyled ];
+
   services.lxqt-policykit-agent = {
     enable = true;
     package = lxqtPolicykitStyled;

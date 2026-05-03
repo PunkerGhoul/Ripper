@@ -55,6 +55,9 @@ func ensureDisplayManagerPackagesDebian(apply bool) (string, error) {
 		return "", err
 	}
 
+	// Desinstalar agente GNOME si existe para evitar conflictos con LXQt
+	_ = system.RunInteractive(sudoPath, aptPath, "remove", "-y", "policykit-1-gnome")
+
 	if err := startPolkitService(sudoPath, systemctlPath); err != nil {
 		return "", err
 	}
@@ -91,6 +94,9 @@ func ensureDisplayManagerPackagesArch(apply bool) (string, error) {
 	); err != nil {
 		return "", err
 	}
+
+	// Desinstalar agente GNOME si existe para evitar conflictos con LXQt
+	_ = system.RunInteractive(sudoPath, pacmanPath, "-R", "--noconfirm", "polkit-gnome")
 
 	if err := startPolkitService(sudoPath, systemctlPath); err != nil {
 		return "", err
