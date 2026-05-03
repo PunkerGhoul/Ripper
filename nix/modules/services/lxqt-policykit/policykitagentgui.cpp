@@ -28,6 +28,7 @@
 #include <QIcon>
 #include <QPainter>
 #include <QPixmap>
+#include <QFont>
 #include "policykitagentgui.h"
 #include <unistd.h>
 
@@ -58,6 +59,34 @@ QPixmap createKeyPixmap(int size)
 
     return pixmap;
 }
+
+QPixmap createLockPixmap(int size)
+{
+    QPixmap pixmap(size, size);
+    pixmap.fill(Qt::transparent);
+
+    QPainter painter(&pixmap);
+    painter.setRenderHint(QPainter::Antialiasing, true);
+    painter.setPen(Qt::NoPen);
+
+    painter.setBrush(QColor("#a884ff"));
+    const int bodyX = size / 5;
+    const int bodyY = size / 2 - size / 10;
+    const int bodyW = size - bodyX * 2;
+    const int bodyH = size / 2;
+    painter.drawRoundedRect(QRect(bodyX, bodyY, bodyW, bodyH), 4, 4);
+
+    painter.setBrush(QColor("#c7b2ff"));
+    const int shackleX = size / 3;
+    const int shackleY = size / 8;
+    const int shackleW = size / 3;
+    const int shackleH = size / 2;
+    painter.drawRoundedRect(QRect(shackleX, shackleY, shackleW, shackleH), shackleW / 2, shackleW / 2);
+    painter.setBrush(QColor("#1f2432"));
+    painter.drawRoundedRect(QRect(shackleX + size / 14, shackleY + size / 14, shackleW - size / 7, shackleH - size / 12), shackleW / 2, shackleW / 2);
+
+    return pixmap;
+}
 } // namespace
 
 namespace LXQtPolicykit
@@ -81,21 +110,34 @@ PolicykitAgentGUI::PolicykitAgentGUI(const QString &actionId,
         " border: 1px solid #8f70df; border-radius: 8px; padding: 6px; }"
         "QPushButton { background-color: #3a2f56; color: #f2f5ff;"
         " border: 1px solid #8f70df; border-radius: 8px; padding: 6px; }"
+        "QPushButton#cancelButton { background-color: rgba(31, 36, 50, 0.82); color: #cfd7f3; }"
         "QPushButton:hover { background-color: #4a3a71; }"
         "QPushButton:pressed { background-color: #2a1f46; }"
     ));
 
     messageLabel->setText(message);
-    QIcon icon = QIcon::fromTheme(QStringLiteral("dialog-password"));
+    QFont titleFont = messageLabel->font();
+    titleFont.setBold(true);
+    titleFont.setPointSize(titleFont.pointSize() + 1);
+    messageLabel->setFont(titleFont);
+    descriptionLabel->setFont(QFont(descriptionLabel->font().family(), descriptionLabel->font().pointSize()));
+    errorLabel->setFont(QFont(errorLabel->font().family(), errorLabel->font().pointSize()));
+    QIcon icon = QIcon::fromTheme(QStringLiteral("security-high"));
+    if (icon.isNull())
+        icon = QIcon::fromTheme(QStringLiteral("dialog-password"));
     if (icon.isNull())
         icon = QIcon::fromTheme(iconName.isEmpty() ? QStringLiteral("dialog-question") : iconName);
     if (icon.isNull())
         icon = QIcon::fromTheme(QStringLiteral("dialog-question"));
-    QPixmap iconPixmap = icon.pixmap(48, 48);
+    QPixmap iconPixmap = icon.pixmap(56, 56);
     if (iconPixmap.isNull())
-        iconPixmap = createKeyPixmap(48);
+        iconPixmap = createLockPixmap(56);
     iconLabel->setPixmap(iconPixmap);
 
+    messageLabel->setWordWrap(true);
+    descriptionLabel->setWordWrap(true);
+    descriptionLabel->setText(tr("An application is attempting to perform an action that requires privileges. Authentication is required to perform this action"));
+    errorLabel->setStyleSheet(QStringLiteral("QLabel { color: #ff9db2; background: transparent; }"));
     errorLabel->clear();
     errorLabel->setVisible(false);
 
@@ -114,6 +156,9 @@ PolicykitAgentGUI::PolicykitAgentGUI(const QString &actionId,
     }
     setProperty("ripperIdentity", selected_identity);
     promptLabel->setText(QCoreApplication::translate("PolicykitAgentGUI", "Password:"));
+    QFont titleFont = messageLabel->font();
+    titleFont.setBold(true);
+    messageLabel->setFont(titleFont);
     passwordEdit->setFocus(Qt::OtherFocusReason);
 }
 

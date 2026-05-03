@@ -50,6 +50,10 @@ in {
     # '')
   ];
 
+  fonts.packages = with pkgs; [
+    nerd-fonts.hack
+  ];
+
   # Home Manager Extra directories to prepend to PATH.
   # # These directories are added to the PATH variable in a double-quoted context, so expressions like $HOME are expanded by the shell.
   # # However, since expressions like ~ or * are escaped, they will end up in the PATH verbatim.
@@ -115,6 +119,12 @@ in {
   programs.home-manager.enable = true;
 
   fonts.fontconfig.enable = true;
+  fonts.fontconfig.defaultFonts = {
+    serif = [ "Hack Nerd Font" ];
+    sansSerif = [ "Hack Nerd Font" ];
+    monospace = [ "Hack Nerd Font" ];
+    emoji = [ "Hack Nerd Font" ];
+  };
 
   imports = [
     (import ./configuration { inherit pkgs; })

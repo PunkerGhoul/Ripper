@@ -101,6 +101,7 @@ void PolicykitAgent::initiateAuthentication(const QString &actionId,
     {
         m_gui->errorLabel->clear();
         m_gui->errorLabel->setVisible(false);
+        m_gui->descriptionLabel->setText(tr("An application is attempting to perform an action that requires privileges. Authentication is required to perform this action"));
     }
 
     for (const PolkitQt1::Identity &i : identities)
@@ -146,6 +147,7 @@ void PolicykitAgent::request(const QString &request, bool echo)
     });
     m_gui->errorLabel->clear();
     m_gui->errorLabel->setVisible(false);
+    m_gui->descriptionLabel->setText(tr("An application is attempting to perform an action that requires privileges. Authentication is required to perform this action"));
     m_gui->show();
     m_gui->activateWindow();
     m_gui->raise();
