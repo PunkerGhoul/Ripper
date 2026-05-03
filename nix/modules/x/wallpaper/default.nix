@@ -275,6 +275,81 @@ let
       return "$status"
     }
 
+    write_neowall_config() {
+      fps="$1"
+      cfg_dir="$HOME/.config/neowall"
+      mkdir -p "$cfg_dir"
+      cat >"$cfg_dir/config.vibe" <<EOF
+default {
+  shader ${neowallShaderName}
+  shader_speed ${toString (neowall.speed or 1.0)}
+  shader_fps $fps
+  vsync ${lib.boolToString (neowall.vsync or true)}
+  show_fps ${lib.boolToString (neowall.showFps or false)}
+}
+EOF
+    }
+
+    start_neowall_with_fps() {
+      fps="$1"
+      write_neowall_config "$fps"
+      start_neowall
+    }
+
+    monitor_mouse_and_manage_neowall() {
+      # Requires xdotool (optional). Falls back to single start if not available.
+      if command -v ${pkgs.xdotool}/bin/xdotool >/dev/null 2>&1; then
+        echo "ripper-wallpaper: mouse monitor enabled (xdotool)"
+        state="unknown"
+        # initial start at 20 fps (quiet default)
+        desired=20
+        start_neowall_with_fps "$desired"
+        # seed previous mouse position to avoid a large jump on first loop
+        out=$(${pkgs.xdotool}/bin/xdotool getmouselocation --shell 2>/dev/null || true)
+        if [ -n "$out" ]; then
+          eval "$out"
+          prev_x=$X
+          prev_y=$Y
+        else
+          prev_x=0
+          prev_y=0
+        fi
+        # parameters for scaling: max speed (pixels per sample) maps to max fps
+        maxSpeed=120
+        while true; do
+          out=$(${pkgs.xdotool}/bin/xdotool getmouselocation --shell 2>/dev/null || true)
+          if [ -z "$out" ]; then
+            sleep 0.25
+            continue
+          fi
+          eval "$out" # sets X, Y
+          dx=$(( X - prev_x ))
+          dy=$(( Y - prev_y ))
+          # Euclidean speed (pixels per sample)
+          dist=$(( dx*dx + dy*dy ))
+          speed=$(awk "BEGIN{print sqrt($dist)}")
+          prev_x=$X
+          prev_y=$Y
+
+          # Map speed -> ratio [0,1]
+          ratio=$(awk "BEGIN{r=$speed/$maxSpeed; if(r<0) r=0; if(r>1) r=1; printf(\"%.4f\", r)}")
+          # desired fps between 20 and 30
+          newDesired=$(awk "BEGIN{r=$ratio; printf(\"%d\", 20 + int(r*10 + 0.5))}")
+
+          if [ "$newDesired" -ne "$desired" ]; then
+            echo "ripper-wallpaper: mouse speed=$speed ratio=$ratio switching fps to $newDesired"
+            ${neowallPackage}/bin/neowall kill >/dev/null 2>&1 || true
+            start_neowall_with_fps "$newDesired"
+            desired=$newDesired
+          fi
+          sleep 0.10
+        done
+      else
+        echo "ripper-wallpaper: xdotool not found, starting neowall once with default fps"
+        start_neowall_with_fps ${toString (neowall.fps or 30)}
+      fi
+    }
+
     if start_neowall; then
       exit 0
     fi
@@ -285,7 +360,7 @@ in
 {
   home.packages =
     lib.optionals fehEnable [ pkgs.feh ]
-    ++ lib.optionals neowallEnable [ neowallPackage ];
+    ++ lib.optionals neowallEnable [ neowallPackage pkgs.xdotool ];
 
   home.file =
     {
