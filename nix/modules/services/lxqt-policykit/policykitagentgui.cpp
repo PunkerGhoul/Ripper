@@ -41,23 +41,40 @@ QPixmap createLockPixmap(int size)
 
     QPainter painter(&pixmap);
     painter.setRenderHint(QPainter::Antialiasing, true);
-    painter.setPen(Qt::NoPen);
+    painter.setPen(QPen(QColor("#c7b2ff"), 2));
+
+    const int bodyW = (size * 34) / 56;
+    const int bodyH = (size * 24) / 56;
+    const int bodyX = (size - bodyW) / 2;
+    const int bodyY = (size * 26) / 56;
+    const QRect bodyRect(bodyX, bodyY, bodyW, bodyH);
 
     painter.setBrush(QColor("#a884ff"));
-    const int bodyX = size / 5;
-    const int bodyY = size / 2 - size / 10;
-    const int bodyW = size - bodyX * 2;
-    const int bodyH = size / 2;
-    painter.drawRoundedRect(QRect(bodyX, bodyY, bodyW, bodyH), 4, 4);
+    painter.drawRoundedRect(bodyRect, 6, 6);
+
+    const int shackleW = (size * 20) / 56;
+    const int shackleH = (size * 20) / 56;
+    const int shackleX = (size - shackleW) / 2;
+    const int shackleY = (size * 7) / 56;
+    const QRect shackleOuter(shackleX, shackleY, shackleW, shackleH);
 
     painter.setBrush(QColor("#c7b2ff"));
-    const int shackleX = size / 3;
-    const int shackleY = size / 8;
-    const int shackleW = size / 3;
-    const int shackleH = size / 2;
-    painter.drawRoundedRect(QRect(shackleX, shackleY, shackleW, shackleH), shackleW / 2, shackleW / 2);
+    painter.drawRoundedRect(shackleOuter, shackleW / 2, shackleW / 2);
+
+    const int inset = qMax(2, size / 14);
+    const QRect shackleInner(shackleX + inset, shackleY + inset, shackleW - inset * 2, shackleH - inset);
+    painter.setPen(Qt::NoPen);
     painter.setBrush(QColor("#1f2432"));
-    painter.drawRoundedRect(QRect(shackleX + size / 14, shackleY + size / 14, shackleW - size / 7, shackleH - size / 12), shackleW / 2, shackleW / 2);
+    painter.drawRoundedRect(shackleInner, qMax(2, shackleW / 3), qMax(2, shackleW / 3));
+
+    painter.setPen(Qt::NoPen);
+    painter.setBrush(QColor("#1f2432"));
+    const int keyholeW = qMax(2, size / 12);
+    const int keyholeH = qMax(5, size / 7);
+    const int keyholeX = bodyRect.center().x() - (keyholeW / 2);
+    const int keyholeY = bodyRect.center().y() - (keyholeH / 2);
+    painter.drawEllipse(QRect(keyholeX, keyholeY - keyholeW / 2, keyholeW, keyholeW));
+    painter.drawRoundedRect(QRect(keyholeX, keyholeY, keyholeW, keyholeH), 2, 2);
 
     return pixmap;
 }
@@ -85,6 +102,8 @@ PolicykitAgentGUI::PolicykitAgentGUI(const QString &actionId,
         "QPushButton { background-color: #3a2f56; color: #f2f5ff;"
         " border: 1px solid #8f70df; border-radius: 8px; padding: 6px; }"
         "QPushButton#cancelButton { background-color: rgba(31, 36, 50, 0.82); color: #cfd7f3; }"
+        "QPushButton#cancelButton:hover { background-color: #4a3a71; color: #f2f5ff; }"
+        "QPushButton#cancelButton:pressed { background-color: #2a1f46; color: #f2f5ff; }"
         "QPushButton:hover { background-color: #4a3a71; }"
         "QPushButton:pressed { background-color: #2a1f46; }"
     ));
