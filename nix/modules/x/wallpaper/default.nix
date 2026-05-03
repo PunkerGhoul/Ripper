@@ -62,23 +62,52 @@ let
   fehFlag = fehModes.${fehMode} or (throw "Unsupported wallpaper.feh.mode: ${fehMode}");
 
   neowallShaderName = neowall.shaderName or neowall.shader or "ripper.glsl";
-  neowallGlsl = neowall.glsl or neowall.shaderCode or ''
+  defaultNeowallGlsl = ''
     #version 100
     precision highp float;
 
     uniform float iTime;
     uniform vec2 iResolution;
 
-    void main() {
-        vec2 uv = gl_FragCoord.xy / iResolution.xy;
-        uv.x *= iResolution.x / iResolution.y;
+    float proceduralTexture(vec2 p) {
+        float t = iTime * 0.5;
+        float waves =
+            sin(p.x * 7.0 + t) +
+            cos(p.y * 8.0 - t * 1.2) +
+            sin((p.x + p.y) * 5.0 + t * 0.7);
+        float rings = sin(length(p) * 28.0 - t * 2.0);
+        return 0.5 + 0.5 * sin(waves + rings);
+    }
 
-        float waveScale = 2.4;
-        vec2 wideUv = uv / waveScale;
-        vec3 color = 0.5 + 0.5 * cos(iTime + wideUv.xyx + vec3(0.0, 2.0, 4.0));
-        gl_FragColor = vec4(color, 1.0);
+    void main() {
+        vec2 designResolution = vec2(800.0, 450.0);
+        vec2 fragCoord = (gl_FragCoord.xy - 0.5 * iResolution.xy)
+            / min(iResolution.x / designResolution.x, iResolution.y / designResolution.y)
+            + 0.5 * designResolution;
+        vec2 uv = fragCoord / designResolution;
+
+        float aspect = designResolution.x / designResolution.y;
+        vec2 p = vec2((uv.x - 0.5) * aspect, uv.y - 0.5);
+        float t = iTime * 0.5;
+
+        p.x += sin(t + p.y * 10.0) * 0.08;
+        p.y += cos(t + p.x * 10.0) * 0.08;
+
+        float tex = proceduralTexture(p * 1.8);
+        vec3 col = vec3(0.0, 0.0, tex);
+        col = sin(col + length(col) * 30.0 + t) * 0.5 + 0.5;
+        col = max((col - 0.55) * 2.0, 0.0);
+
+        gl_FragColor = vec4(col, 1.0);
     }
   '';
+  neowallGlsl =
+    if (neowall ? glsl) && neowall.glsl != "" then
+      neowall.glsl
+    else if (neowall ? shaderCode) && neowall.shaderCode != "" then
+      neowall.shaderCode
+    else
+      defaultNeowallGlsl;
   neowallConfig = neowall.config or ''
     default {
       shader ${neowallShaderName}
