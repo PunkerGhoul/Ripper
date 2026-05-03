@@ -144,13 +144,29 @@ void PolicykitAgent::request(const QString &request, bool echo)
     Q_ASSERT(m_gui);
 
     PolkitQt1::Identity identity = m_SessionIdentity[session];
+    if (identity.toString() != m_gui->identity())
+        return;
+
     m_gui->setPrompt(identity, request, echo);
+    disconnect(m_gui, &QDialog::finished, this, nullptr);
     connect(m_gui, &QDialog::finished, this, [this, session] (int result)
     {
-        if (result == QDialog::Accepted && m_gui->identity() == m_SessionIdentity[session].toString())
+        if (!m_inProgress || m_gui == nullptr || !m_SessionIdentity.contains(session))
+            return;
+
+        if (m_gui->identity() != m_SessionIdentity[session].toString())
+            return;
+
+        if (result == QDialog::Accepted)
             session->setResponse(m_gui->response());
         else
-            session->cancel();
+        {
+            session->result()->setError(tr("Authentication canceled"));
+            session->result()->setCompleted();
+            m_inProgress = false;
+            m_gui->hide();
+            deleteSessions();
+        }
     });
     m_gui->descriptionLabel->setText(tr("An application is attempting to perform an action that requires privileges. Authentication is required to perform this action"));
     m_gui->show();
@@ -171,15 +187,14 @@ void PolicykitAgent::completed(bool gainedAuthorization)
             m_gui->errorLabel->setStyleSheet(QStringLiteral("QLabel { color: #ff9db2; background: transparent; }"));
             m_gui->errorLabel->setText(tr("Authorization failed for some reason"));
             m_gui->errorLabel->setVisible(true);
-            m_gui->show();
-            m_gui->activateWindow();
-            m_gui->raise();
         }
 
         // Note: the setCompleted() must be called exacly once (as the
         // AsyncResult is shared by all the sessions)
         session->result()->setCompleted();
         m_inProgress = false;
+        if (!gainedAuthorization)
+            m_gui->hide();
     }
     if (m_infobox != nullptr){
       m_infobox->hide();

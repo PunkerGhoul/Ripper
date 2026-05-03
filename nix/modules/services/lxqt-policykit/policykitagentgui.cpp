@@ -161,7 +161,7 @@ PolicykitAgentGUI::PolicykitAgentGUI(const QString &actionId,
         "QDialog { background-color: #1f2432; }"
         "QLabel { color: #e9eeff; }"
         "QLineEdit { background-color: #2b3246; color: #f1f5ff;"
-        " border: 1px solid #8f70df; border-radius: 8px; padding: 6px; }"
+        " border: 1px solid #8f70df; border-radius: 8px; padding: 6px; margin-top: 4px; }"
         "QPushButton { background-color: #3a2f56; color: #f2f5ff;"
         " border: 1px solid #8f70df; border-radius: 8px; padding: 6px; }"
         "QPushButton#cancelButton { background-color: rgba(31, 36, 50, 0.82); color: #cfd7f3; }"
