@@ -62,100 +62,218 @@ let
   fehFlag = fehModes.${fehMode} or (throw "Unsupported wallpaper.feh.mode: ${fehMode}");
 
   neowallShaderName = neowall.shaderName or neowall.shader or "ripper.glsl";
-  defaultNeowallGlsl = ''
+    defaultNeowallGlsl = ''
     precision highp float;
 
+      const float PI = 3.14159265359;
+      const float SPEED = 1.0;
+      const float STEP_COUNT = 8.0;
+
     float hash(vec2 p) {
-        p = fract(p * vec2(123.34, 456.21));
-        p += dot(p, p + 45.32);
-        return fract(p.x * p.y);
+      p = fract(p * vec2(123.34, 456.21));
+      p += dot(p, p + 45.32);
+      return fract(p.x * p.y);
     }
 
     float noise(vec2 p) {
-        vec2 i = floor(p);
-        vec2 f = fract(p);
-        vec2 u = f * f * (3.0 - 2.0 * f);
+      vec2 i = floor(p);
+      vec2 f = fract(p);
+      vec2 u = f * f * (3.0 - 2.0 * f);
 
-        float a = hash(i);
-        float b = hash(i + vec2(1.0, 0.0));
-        float c = hash(i + vec2(0.0, 1.0));
-        float d = hash(i + vec2(1.0, 1.0));
+      float a = hash(i);
+      float b = hash(i + vec2(1.0, 0.0));
+      float c = hash(i + vec2(0.0, 1.0));
+      float d = hash(i + vec2(1.0, 1.0));
 
-        return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
+      return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
     }
 
-    float fbm3(vec2 p) {
-        float v = 0.0;
-        float a = 0.5;
-        mat2 rot = mat2(0.80, -0.60, 0.60, 0.80);
-        for (int i = 0; i < 3; i++) {
-            v += a * noise(p);
-            p = rot * p * 2.05 + 17.3;
-            a *= 0.5;
-        }
-        return v;
+    float fbm(vec2 p) {
+      float v = 0.0;
+      float a = 0.5;
+      mat2 rot = mat2(0.80, -0.60, 0.60, 0.80);
+
+      for (int i = 0; i < 5; i++) {
+        v += a * noise(p);
+        p = rot * p * 2.05 + 17.3;
+        a *= 0.5;
+      }
+
+      return v;
     }
 
-    float fbm5(vec2 p) {
-        float v = 0.0;
-        float a = 0.5;
-        mat2 rot = mat2(0.80, -0.60, 0.60, 0.80);
-        for (int i = 0; i < 5; i++) {
-            v += a * noise(p);
-            p = rot * p * 2.05 + 17.3;
-            a *= 0.5;
-        }
-        return v;
+    vec2 rotate(vec2 v, float a) {
+      float s = sin(a);
+      float c = cos(a);
+      return mat2(c, -s, s, c) * v;
+    }
+
+    float smoothstep1(float x) {
+      return smoothstep(0.0, 1.0, x);
+    }
+
+    vec2 movement_path(float time, vec2 mouse, out float angle, out float turnWeight) {
+      float turn_rad = 0.25 / 3.0;
+      float turn_abs_time = (PI / 2.0 * turn_rad) * 1.5;
+      float turn_time = turn_abs_time / (1.0 - 2.0 * turn_rad + turn_abs_time);
+      float level1_size = 10.0 * 3.0 * 12.0 * 0.10;
+      float level2_size = 4.0 * level1_size;
+
+      float tq = fract(time / (level2_size * 4.0) * 12.0);
+      float t8 = fract(tq * 4.0);
+      float t1 = fract(t8 * 8.0);
+
+      vec2 prev;
+      vec2 dir;
+      if (tq < 0.25) {
+        prev = vec2(0.0, 0.0);
+        dir = vec2(0.0, 1.0);
+      } else if (tq < 0.5) {
+        prev = vec2(0.0, 1.0);
+        dir = vec2(1.0, 0.0);
+      } else if (tq < 0.75) {
+        prev = vec2(1.0, 1.0);
+        dir = vec2(0.0, -1.0);
+      } else {
+        prev = vec2(1.0, 0.0);
+        dir = vec2(-1.0, 0.0);
+      }
+
+      prev *= 4.0;
+      vec2 dirL = rotate(dir, -PI / 2.0);
+      vec2 dirR = -dirL;
+
+      vec2 turn;
+      float turn_sign = 0.0;
+      float up_down = 0.0;
+      float rotate_on_turns = 1.0;
+      float roll_on_turns = 1.0;
+      float add_angle = 0.0;
+
+      if (t8 < 0.125) {
+        turn = dirL;
+        turn_sign = -1.0;
+        angle = -0.4 * (max(0.0, t1 - (1.0 - turn_time * 2.0)) / turn_time - max(0.0, t1 - (1.0 - turn_time)) / turn_time * 2.5);
+        roll_on_turns = 0.0;
+      } else if (t8 < 0.250) {
+        prev += dir;
+        turn = dir;
+        dir = dirL;
+        angle = -1.0;
+        turn_sign = 1.0;
+        add_angle += 0.4 * 0.5 + (-0.4 * 0.5 + 1.0 + 0.5) * t1;
+        rotate_on_turns = 0.0;
+        roll_on_turns = 0.0;
+      } else if (t8 < 0.375) {
+        prev += dir + dirL;
+        turn = dirR;
+        turn_sign = 1.0;
+        add_angle += 0.5 * sqrt(1.0 - t1);
+      } else if (t8 < 0.5) {
+        prev += dir + dir + dirL;
+        turn = dirR;
+        dir = dirR;
+        angle = 1.0;
+        turn_sign = 0.0;
+        up_down = sin(t1 * PI) * 0.37;
+      } else if (t8 < 0.625) {
+        prev += dir + dir;
+        turn = dir;
+        dir = dirR;
+        angle = 1.0;
+        turn_sign = -1.0;
+        up_down = sin(-min(1.0, t1 / (1.0 - turn_time)) * PI) * 0.37;
+      } else if (t8 < 0.750) {
+        prev += dir + dir + dirR;
+        turn = dirL;
+        turn_sign = -1.0;
+        add_angle -= (0.25 + 1.0) * smoothstep1(t1);
+        rotate_on_turns = 0.0;
+        roll_on_turns = 0.0;
+      } else if (t8 < 0.875) {
+        prev += dir + dir + dir + dirR;
+        turn = dir;
+        dir = dirL;
+        angle = -1.0;
+        turn_sign = 1.0;
+        add_angle -= 0.25 - smoothstep1(t1) * (0.25 * 2.0 + 1.0);
+        rotate_on_turns = 0.0;
+        roll_on_turns = 0.0;
+      } else {
+        prev += dir + dir + dir;
+        turn = dirR;
+        turn_sign = 1.0;
+        angle = 0.25 * (1.5 * min(1.0, (1.0 - t1) / turn_time) - 0.5 * smoothstep1(1.0 - min(1.0, t1 / (1.0 - turn_time))));
+      }
+
+      if (length(mouse) > 0.01) {
+        up_down = -0.7 * mouse.y;
+        angle += mouse.x;
+        rotate_on_turns = 1.0;
+        roll_on_turns = 0.0;
+      } else {
+        angle += add_angle;
+      }
+
+      vec2 p;
+      if (turn_sign == 0.0) {
+        p = prev + dir * (turn_rad + 1.0 * t1);
+      } else if (t1 > (1.0 - turn_time)) {
+        float tr = (t1 - (1.0 - turn_time)) / turn_time;
+        vec2 c = prev + dir * (1.0 - turn_rad) + turn * turn_rad;
+        p = c + turn_rad * rotate(dir, (tr - 1.0) * turn_sign * PI / 2.0);
+        angle += tr * turn_sign * rotate_on_turns;
+      } else {
+        t1 /= (1.0 - turn_time);
+        p = prev + dir * (turn_rad + (1.0 - turn_rad * 2.0) * t1);
+      }
+
+      turnWeight = clamp(abs(mouse.x) + abs(mouse.y), 0.0, 1.0);
+      p *= level1_size * 0.33;
+      p += vec2(sin(time * 0.6), cos(time * 0.45)) * 0.8;
+      p += rotate(vec2(mouse.x, mouse.y), angle) * 1.4;
+      return p;
     }
 
     void mainImage(out vec4 fragColor, in vec2 fragCoord) {
-        vec2 designResolution = vec2(800.0, 450.0);
-        float scale = iResolution.y / designResolution.y;
-        vec2 uv = (fragCoord - 0.5 * iResolution.xy) / scale + 0.5 * designResolution;
-        uv /= designResolution;
+      vec2 designResolution = vec2(800.0, 450.0);
+      float scale = iResolution.y / designResolution.y;
+      vec2 uv = (fragCoord - 0.5 * iResolution.xy) / scale + 0.5 * designResolution;
+      uv /= designResolution;
 
-        float t = iTime * 0.16;
-        uv.x += sin(iTime * 0.5 + uv.y * 10.0) * 0.05;
-        uv.y += cos(iTime * 0.5 + uv.x * 10.0) * 0.05;
+      vec2 mouse = iMouse.xy / iResolution.xy * 2.0 - 1.0;
+      float angle = 0.0;
+      float turnWeight = 0.0;
+      float time = iTime * SPEED;
+      vec2 path = movement_path(time, mouse, angle, turnWeight);
 
-        vec2 mouse = (iMouse.xy / max(iResolution.xy, vec2(1.0)) - 0.5);
-        float mouseDist = length(mouse);
-        // Influencia reducida: el mouse modula parcialmente, pero la animación base sigue siendo dominante.
-        float mouseInfluence = clamp(mouseDist * 2.0, 0.0, 1.0);
-        float mouseActivity = pow(mouseInfluence, 0.7);
+      vec2 p = (uv - 0.5) * vec2(designResolution.x / designResolution.y, 1.0);
+      p *= 3.15;
+      p += path * 0.08;
+      p += rotate(uv, angle) * 0.12;
+      p += vec2(sin(time * 0.5), cos(time * 0.35)) * 0.04;
 
-        vec2 p = (uv - 0.5) * vec2(designResolution.x / designResolution.y, 1.0);
-        // Deform parcialmente siguiendo el mouse: efecto más sutil y suavizado
-        p += mouse * 0.06 * mouseActivity;
-        p *= 3.15;
+      float t = time * 0.16;
+      vec2 q = vec2(fbm(p + vec2(0.0, t)), fbm(p + vec2(5.2, 1.3 - t)));
+      vec2 r = vec2(fbm(p + 4.0 * q + vec2(1.7, 9.2)), fbm(p + 4.0 * q + vec2(8.3, 2.8)));
+      float n = fbm(p + 4.8 * r + path * 0.05);
 
-        // Elegir detalle en función de la actividad del mouse:
-        vec2 qLow = vec2(fbm3(p + vec2(0.0, t)), fbm3(p + vec2(5.2, 1.3 - t)));
-        vec2 qHigh = vec2(fbm5(p + vec2(0.0, t)), fbm5(p + vec2(5.2, 1.3 - t)));
-        vec2 q = mix(qLow, qHigh, mouseActivity);
+      float veins = 1.0 - smoothstep(0.055, 0.18, abs(sin((n + r.x * 0.55 + angle * 0.25) * 35.0)));
+      float ridges = 1.0 - smoothstep(0.08, 0.23, abs(sin((n + q.y * 0.35 + turnWeight * 0.2) * 18.0)));
+      float fine = 1.0 - smoothstep(0.012, 0.06, abs(sin((n + q.x + angle * 0.1) * 82.0)));
 
-        vec2 rLow = vec2(fbm3(p + 4.0 * q + vec2(1.7, 9.2)), fbm3(p + 4.0 * q + vec2(8.3, 2.8)));
-        vec2 rHigh = vec2(fbm5(p + 4.0 * q + vec2(1.7, 9.2)), fbm5(p + 4.0 * q + vec2(8.3, 2.8)));
-        vec2 r = mix(rLow, rHigh, mouseActivity);
+      vec3 col = vec3(0.005, 0.006, 0.010);
+      col += vec3(0.28, 0.30, 0.32) * ridges;
+      col += vec3(0.17, 0.18, 0.19) * veins;
+      col += vec3(0.02, 0.03, 0.55) * fine * (0.35 + 0.65 * noise(p * 7.0 + path));
+      col += vec3(0.36, 0.34, 0.02) * fine * veins * 0.32;
 
-        float n = mix(fbm3(p + 3.6 * q + vec2(0.0)), fbm5(p + 4.8 * r), mouseActivity);
+      col *= 0.72 + 0.28 * smoothstep(0.15, 0.95, n);
+      col = max(col - 0.015, 0.0);
 
-        float veins = 1.0 - smoothstep(0.055, 0.18, abs(sin((n + r.x * 0.55) * 35.0)));
-        float ridges = 1.0 - smoothstep(0.08, 0.23, abs(sin((n + q.y * 0.35) * 18.0)));
-        float fine = 1.0 - smoothstep(0.012, 0.06, abs(sin((n + q.x) * 82.0)));
-
-        vec3 col = vec3(0.005, 0.006, 0.010);
-        col += vec3(0.28, 0.30, 0.32) * ridges;
-        col += vec3(0.17, 0.18, 0.19) * veins;
-        col += vec3(0.02, 0.03, 0.55) * fine * (0.35 + 0.65 * noise(p * 7.0));
-        col += vec3(0.36, 0.34, 0.02) * fine * veins * 0.32;
-
-        col *= 0.72 + 0.28 * smoothstep(0.15, 0.95, n);
-        col = max(col - 0.015, 0.0);
-
-        fragColor = vec4(col, 1.0);
+      fragColor = vec4(col, 1.0);
     }
-  '';
+    '';
   sanitizeNeowallGlsl = glsl:
     let
       withoutLeadingNewline = lib.removePrefix "\n" glsl;
