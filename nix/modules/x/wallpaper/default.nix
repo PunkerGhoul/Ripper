@@ -63,7 +63,6 @@ let
 
   neowallShaderName = neowall.shaderName or neowall.shader or "ripper.glsl";
   defaultNeowallGlsl = ''
-    #version 100
     precision highp float;
 
     uniform float iTime;
@@ -79,13 +78,23 @@ let
         gl_FragColor = vec4(color, 1.0);
     }
   '';
-  neowallGlsl =
+  sanitizeNeowallGlsl = glsl:
+    let
+      withoutLeadingNewline = lib.removePrefix "\n" glsl;
+      lines = lib.splitString "\n" withoutLeadingNewline;
+    in
+      if lines != [] && lib.hasPrefix "#version" (builtins.head lines) then
+        lib.concatStringsSep "\n" (builtins.tail lines)
+      else
+        withoutLeadingNewline;
+  neowallGlsl = sanitizeNeowallGlsl (
     if (neowall ? glsl) && neowall.glsl != "" then
       neowall.glsl
     else if (neowall ? shaderCode) && neowall.shaderCode != "" then
       neowall.shaderCode
     else
-      defaultNeowallGlsl;
+      defaultNeowallGlsl
+    );
   neowallConfig = neowall.config or ''
     default {
       shader ${neowallShaderName}

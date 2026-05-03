@@ -29,9 +29,7 @@ func RenderInstallConfig(cfg InstallConfig) string {
       vsync = true;
       showFps = false;
       nice = 10;
-      glsl = ''
-        #version 100
-        precision highp float;
+      glsl = ''precision highp float;
 
         uniform float iTime;
         uniform vec2 iResolution;
