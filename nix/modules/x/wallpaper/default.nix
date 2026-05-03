@@ -89,9 +89,9 @@ let
         float a = 0.5;
         mat2 rot = mat2(0.80, -0.60, 0.60, 0.80);
 
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < 3; i++) {
             v += a * noise(p);
-            p = rot * p * 2.05 + 17.3;
+            p = rot * p * 2.0 + 17.3;
             a *= 0.5;
         }
 
@@ -109,20 +109,21 @@ let
         uv.y += cos(iTime * 0.5 + uv.x * 10.0) * 0.05;
 
         vec2 p = (uv - 0.5) * vec2(designResolution.x / designResolution.y, 1.0);
-        p *= 3.15;
+        vec2 mouse = (iMouse.xy / max(iResolution.xy, vec2(1.0)) - 0.5) * 0.18;
+        p *= 3.0;
+        p += vec2(t * 0.55, -t * 0.28) + 0.12 * vec2(sin(t * 1.7), cos(t * 1.3)) + mouse;
 
-        vec2 q = vec2(fbm(p + vec2(0.0, t)), fbm(p + vec2(5.2, 1.3 - t)));
-        vec2 r = vec2(fbm(p + 4.0 * q + vec2(1.7, 9.2)), fbm(p + 4.0 * q + vec2(8.3, 2.8)));
-        float n = fbm(p + 4.8 * r);
+        vec2 q = vec2(fbm(p + vec2(0.0, t * 0.9)), fbm(p + vec2(5.2, 1.3 - t * 0.7)));
+        float n = fbm(p + 3.6 * q + vec2(t * 0.35, -t * 0.22));
 
-        float veins = 1.0 - smoothstep(0.055, 0.18, abs(sin((n + r.x * 0.55) * 35.0)));
+        float veins = 1.0 - smoothstep(0.055, 0.18, abs(sin((n + q.x * 0.55 + t * 0.08) * 35.0)));
         float ridges = 1.0 - smoothstep(0.08, 0.23, abs(sin((n + q.y * 0.35) * 18.0)));
-        float fine = 1.0 - smoothstep(0.012, 0.06, abs(sin((n + q.x) * 82.0)));
+        float fine = 1.0 - smoothstep(0.014, 0.065, abs(sin((n + q.x + t * 0.12) * 66.0)));
 
         vec3 col = vec3(0.005, 0.006, 0.010);
         col += vec3(0.28, 0.30, 0.32) * ridges;
         col += vec3(0.17, 0.18, 0.19) * veins;
-        col += vec3(0.02, 0.03, 0.55) * fine * (0.35 + 0.65 * noise(p * 7.0));
+        col += vec3(0.02, 0.03, 0.55) * fine * (0.35 + 0.65 * noise(p * 5.0 + t));
         col += vec3(0.36, 0.34, 0.02) * fine * veins * 0.32;
 
         col *= 0.72 + 0.28 * smoothstep(0.15, 0.95, n);
