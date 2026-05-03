@@ -9,7 +9,7 @@ let
   neowall = wallpaper.neowall or { };
 
   fehEnable = feh.enable or true;
-  neowallEnable = neowall.enable or false;
+  neowallEnable = neowall.enable or true;
 
   sourceToString = source:
     if builtins.isPath source then
@@ -139,57 +139,38 @@ let
 
       exec 8>"$runtime_dir/ripper-neowall.lock"
       if ! ${pkgs.util-linux}/bin/flock -n 8; then
-        echo "ripper-wallpaper: neowall supervisor already running"
+        echo "ripper-wallpaper: neowall launcher already running"
         return 0
-      fi
-
-      echo "ripper-wallpaper: starting neowall supervisor"
-      if [ "${lib.boolToString (neowall.killBeforeStart or false)}" = "true" ]; then
-        ${neowallPackage}/bin/neowall kill >/dev/null 2>&1 || true
       fi
 
       user_id="$(${pkgs.coreutils}/bin/id -u)"
       neowall_running() {
-        ${pkgs.procps}/bin/pgrep -u "$user_id" -f '([ /])neowall([ ]|$)' >/dev/null 2>&1
+        ${pkgs.procps}/bin/pgrep -u "$user_id" -f '/bin/neowall([ ]|$)' >/dev/null 2>&1 \
+          || ${pkgs.procps}/bin/pgrep -u "$user_id" -x neowall >/dev/null 2>&1
       }
 
-      start_neowall_once() {
-        if neowall_running; then
-          echo "ripper-wallpaper: neowall is already running"
-          return 0
-        fi
+      if neowall_running; then
+        echo "ripper-wallpaper: neowall is already running"
+        return 0
+      fi
 
-        echo "ripper-wallpaper: starting neowall"
+      if [ "${lib.boolToString (neowall.killBeforeStart or false)}" = "true" ]; then
+        ${neowallPackage}/bin/neowall kill >/dev/null 2>&1 || true
+      fi
+
+      echo "ripper-wallpaper: starting neowall"
+      ${pkgs.util-linux}/bin/setsid -f \
         ${pkgs.coreutils}/bin/nice -n ${toString (neowall.nice or 10)} \
-          ${neowallPackage}/bin/neowall &
-        launcher_pid="$!"
-        ${pkgs.coreutils}/bin/sleep 0.75
+        ${neowallPackage}/bin/neowall
+      ${pkgs.coreutils}/bin/sleep 1
 
-        if neowall_running; then
-          echo "ripper-wallpaper: neowall is running"
-          return 0
-        fi
+      if neowall_running; then
+        echo "ripper-wallpaper: neowall started"
+        return 0
+      fi
 
-        if kill -0 "$launcher_pid" 2>/dev/null; then
-          echo "ripper-wallpaper: neowall is running in foreground"
-          wait "$launcher_pid"
-          return "$?"
-        fi
-
-        wait "$launcher_pid"
-      }
-
-      while true; do
-        start_neowall_once
-        status="$?"
-
-        while neowall_running; do
-          ${pkgs.coreutils}/bin/sleep ${toString (neowall.monitorInterval or 30)}
-        done
-
-        echo "ripper-wallpaper: neowall stopped with status $status; restarting soon"
-        ${pkgs.coreutils}/bin/sleep ${toString (neowall.restartDelay or 3)}
-      done
+      echo "ripper-wallpaper: neowall did not stay running"
+      return 1
     }
 
     if start_neowall; then

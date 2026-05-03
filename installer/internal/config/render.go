@@ -30,8 +30,6 @@ func RenderInstallConfig(cfg InstallConfig) string {
       showFps = false;
       nice = 10;
       killBeforeStart = false;
-      monitorInterval = 30;
-      restartDelay = 3;
       glsl = ''
         #version 100
         precision highp float;
