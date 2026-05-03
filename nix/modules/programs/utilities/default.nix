@@ -5,9 +5,7 @@
     (import ./bat { inherit pkgs; })
     (import ./git { inherit pkgs env; })
     (import ./jq { inherit pkgs; })
-    (import ./go { inherit pkgs; })
     (import ./kitty { inherit config pkgs unstable nixGLCommand; })
-    (import ./logseq { inherit pkgs; })
     (import ./neovim { inherit pkgs unstable; })
     (import ./rofi { inherit config pkgs; })
     (import ./tmux { inherit pkgs; })
@@ -16,7 +14,7 @@
 
   options.ripper.programs.utilities.packages = lib.mkOption {
     type = with lib.types; listOf package;
-    default = [ pkgs.sage ];
+    default = [ pkgs.sage pkgs.go pkgs.logseq ];
     description = "Packages provided by utility program modules.";
   };
 }
