@@ -26,8 +26,39 @@
  * END_COMMON_COPYRIGHT_HEADER */
 
 #include <QIcon>
+#include <QPainter>
+#include <QPixmap>
 #include "policykitagentgui.h"
 #include <unistd.h>
+
+namespace
+{
+QPixmap createKeyPixmap(int size)
+{
+    QPixmap pixmap(size, size);
+    pixmap.fill(Qt::transparent);
+
+    QPainter painter(&pixmap);
+    painter.setRenderHint(QPainter::Antialiasing, true);
+    painter.setPen(Qt::NoPen);
+    painter.setBrush(QColor("#a884ff"));
+
+    const int headRadius = size / 5;
+    const int headX = size / 5;
+    const int headY = size / 4;
+    painter.drawEllipse(QRect(headX, headY, headRadius * 2, headRadius * 2));
+
+    const int shaftX = headX + headRadius * 2 - 1;
+    const int shaftY = headY + headRadius - 2;
+    const int shaftHeight = headRadius;
+    painter.drawRoundedRect(QRect(shaftX, shaftY, size - shaftX - size / 8, shaftHeight), 2, 2);
+
+    painter.drawRect(QRect(size - size / 4, shaftY, size / 12, shaftHeight + size / 12));
+    painter.drawRect(QRect(size - size / 6, shaftY, size / 12, shaftHeight + size / 16));
+
+    return pixmap;
+}
+} // namespace
 
 namespace LXQtPolicykit
 {
@@ -60,7 +91,13 @@ PolicykitAgentGUI::PolicykitAgentGUI(const QString &actionId,
         icon = QIcon::fromTheme(iconName.isEmpty() ? QStringLiteral("dialog-question") : iconName);
     if (icon.isNull())
         icon = QIcon::fromTheme(QStringLiteral("dialog-question"));
-    iconLabel->setPixmap(icon.pixmap(48, 48));
+    QPixmap iconPixmap = icon.pixmap(48, 48);
+    if (iconPixmap.isNull())
+        iconPixmap = createKeyPixmap(48);
+    iconLabel->setPixmap(iconPixmap);
+
+    errorLabel->clear();
+    errorLabel->setVisible(false);
 
     const uid_t current_uid = getuid();
     QString selected_identity;
@@ -93,6 +130,8 @@ void PolicykitAgentGUI::setPromptLabel(const QString &text)
 void PolicykitAgentGUI::setPrompt(const PolkitQt1::Identity &identity, const QString &text, bool echo)
 {
     Q_UNUSED(identity);
+    errorLabel->clear();
+    errorLabel->setVisible(false);
     setPromptLabel(text);
     passwordEdit->setEchoMode(echo ? QLineEdit::Normal : QLineEdit::Password);
 }

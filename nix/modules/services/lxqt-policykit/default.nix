@@ -6,6 +6,7 @@ let
     postPatch = (old.postPatch or "") + ''
       cp ${./policykitagentgui.cpp} src/policykitagentgui.cpp
       cp ${./policykitagentgui.ui} src/policykitagentgui.ui
+      cp ${./policykitagent.cpp} src/policykitagent.cpp
     '';
   });
 in
