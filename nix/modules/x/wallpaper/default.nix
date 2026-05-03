@@ -119,12 +119,15 @@ let
         uv.y += cos(iTime * 0.5 + uv.x * 10.0) * 0.05;
 
         vec2 mouse = (iMouse.xy / max(iResolution.xy, vec2(1.0)) - 0.5);
-        float mouseActivity = smoothstep(0.02, 0.12, length(mouse));
+        float mouseDist = length(mouse);
+        // Influencia reducida: el mouse modula parcialmente, pero la animación base sigue siendo dominante.
+        float mouseInfluence = clamp(mouseDist * 2.0, 0.0, 1.0);
+        float mouseActivity = pow(mouseInfluence, 0.7);
 
         vec2 p = (uv - 0.5) * vec2(designResolution.x / designResolution.y, 1.0);
-        // Deform parcialmente siguiendo el mouse (mutador suave)
-        p += mouse * 0.12 * mouseActivity;
-        p *= mix(3.0, 3.6, 0.0); // escala base
+        // Deform parcialmente siguiendo el mouse: efecto más sutil y suavizado
+        p += mouse * 0.06 * mouseActivity;
+        p *= 3.15;
 
         // Elegir detalle en función de la actividad del mouse:
         vec2 qLow = vec2(fbm3(p + vec2(0.0, t)), fbm3(p + vec2(5.2, 1.3 - t)));
