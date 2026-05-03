@@ -5,6 +5,7 @@ let
   lxqtPolicykitStyled = pkgs.lxqt.lxqt-policykit.overrideAttrs (old: {
     postPatch = (old.postPatch or "") + ''
       cp ${./policykitagentgui.cpp} src/policykitagentgui.cpp
+      cp ${./policykitagentgui.ui} src/policykitagentgui.ui
     '';
   });
 in
