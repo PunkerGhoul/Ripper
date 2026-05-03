@@ -12,42 +12,77 @@ import (
 
 const polkitRulePath = "/etc/polkit-1/rules.d/49-ripper-power.rules"
 
+type polkitRuleState string
+
+const (
+	polkitRuleStateAlreadyConfigured polkitRuleState = "already_configured"
+	polkitRuleStateSkippedForeign    polkitRuleState = "skipped_foreign_file"
+	polkitRuleStateUnreadable        polkitRuleState = "unreadable"
+	polkitRuleStateWouldWrite        polkitRuleState = "would_write"
+	polkitRuleStateWouldWriteUnreadable polkitRuleState = "would_write_unreadable"
+	polkitRuleStateWritten           polkitRuleState = "written"
+)
+
 // EnsurePowerPolkitRule asegura que la regla de polkit exista y esté en el estado esperado.
 // No imprime nada. Devuelve estado semántico para que la capa app decida.
 func EnsurePowerPolkitRule(cfg config.InstallConfig, apply bool) (string, error) {
 	expected := renderPowerPolkitRule(cfg.Username)
 
-	current, err := os.ReadFile(polkitRulePath)
-	if err == nil {
-		currentStr := strings.TrimSpace(string(current))
-		expectedStr := strings.TrimSpace(expected)
-
-		// Ya está exactamente como queremos
-		if currentStr == expectedStr {
-			return "already_configured", nil
-		}
-
-		// Existe pero no es nuestro → no tocar
-		if len(current) > 0 && !strings.Contains(currentStr, "Managed by Ripper") {
-			return "skipped_foreign_file", nil
-		}
+	state, err := detectPolkitRuleState(expected)
+	if err != nil {
+		return "", err
 	}
 
-	if err != nil && !errors.Is(err, os.ErrNotExist) {
+	switch state {
+	case polkitRuleStateAlreadyConfigured:
+		return string(state), nil
+	case polkitRuleStateSkippedForeign:
+		return string(state), nil
+	case polkitRuleStateUnreadable:
+		if !apply {
+			return string(polkitRuleStateWouldWriteUnreadable), nil
+		}
+		return writePolkitRule(expected)
+	default:
+		if !apply {
+			return string(polkitRuleStateWouldWrite), nil
+		}
+		return writePolkitRule(expected)
+	}
+}
+
+func detectPolkitRuleState(expected string) (polkitRuleState, error) {
+	current, err := os.ReadFile(polkitRulePath)
+	if err != nil {
+		if errors.Is(err, os.ErrPermission) {
+			return polkitRuleStateUnreadable, nil
+		}
+		if errors.Is(err, os.ErrNotExist) {
+			return "", nil
+		}
 		return "", fmt.Errorf("read %s: %w", polkitRulePath, err)
 	}
 
-	// Modo dry-run
-	if !apply {
-		return "would_write", nil
+	currentStr := strings.TrimSpace(string(current))
+	expectedStr := strings.TrimSpace(expected)
+
+	if currentStr == expectedStr {
+		return polkitRuleStateAlreadyConfigured, nil
 	}
 
-	// Aplicar cambio
+	if len(current) > 0 && !strings.Contains(currentStr, "Managed by Ripper") {
+		return polkitRuleStateSkippedForeign, nil
+	}
+
+	return "", nil
+}
+
+func writePolkitRule(expected string) (string, error) {
 	if err := system.WriteRootFile(polkitRulePath, expected, "0644"); err != nil {
 		return "", err
 	}
 
-	return "written", nil
+	return string(polkitRuleStateWritten), nil
 }
 
 // renderPowerPolkitRule genera el contenido de la regla.
