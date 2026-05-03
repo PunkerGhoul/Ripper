@@ -36,45 +36,107 @@ namespace
 {
 QPixmap createLockPixmap(int size)
 {
+    if (size <= 0)
+        return QPixmap();
+
     QPixmap pixmap(size, size);
     pixmap.fill(Qt::transparent);
 
-    QPainter painter(&pixmap);
-    painter.setRenderHint(QPainter::Antialiasing, true);
-    painter.setPen(QPen(QColor("#c7b2ff"), 2));
+    QPainter p(&pixmap);
+    p.setRenderHints(QPainter::Antialiasing |
+                     QPainter::TextAntialiasing |
+                     QPainter::SmoothPixmapTransform);
 
-    const int bodyW = (size * 34) / 56;
-    const int bodyH = (size * 24) / 56;
-    const int bodyX = (size - bodyW) / 2;
-    const int bodyY = (size * 26) / 56;
-    const QRect bodyRect(bodyX, bodyY, bodyW, bodyH);
+    // ---- Colores (centralizados)
+    const QColor outline("#c7b2ff");
+    const QColor fill("#a884ff");
+    const QColor dark("#1f2432");
 
-    painter.setBrush(QColor("#a884ff"));
-    painter.drawRoundedRect(bodyRect, 6, 6);
+    // ---- Métricas base (todas en qreal)
+    const qreal s = static_cast<qreal>(size);
+    const qreal stroke = qMax<qreal>(1.2, s * 0.035);
+    const qreal inset  = qMax<qreal>(2.0, s * 0.07);
 
-    const int shackleW = (size * 20) / 56;
-    const int shackleH = (size * 20) / 56;
-    const int shackleX = (size - shackleW) / 2;
-    const int shackleY = (size * 7) / 56;
-    const QRect shackleOuter(shackleX, shackleY, shackleW, shackleH);
+    // =========================
+    // Cuerpo
+    // =========================
+    const QRectF body(
+        (s - s * 0.61) * 0.5,
+        s * 0.46,
+        s * 0.61,
+        s * 0.43
+    );
 
-    painter.setBrush(QColor("#c7b2ff"));
-    painter.drawRoundedRect(shackleOuter, shackleW / 2, shackleW / 2);
+    p.setPen(QPen(outline, stroke, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+    p.setBrush(fill);
+    p.drawRoundedRect(body, body.height() * 0.18, body.height() * 0.18);
 
-    const int inset = qMax(2, size / 14);
-    const QRect shackleInner(shackleX + inset, shackleY + inset, shackleW - inset * 2, shackleH - inset);
-    painter.setPen(Qt::NoPen);
-    painter.setBrush(QColor("#1f2432"));
-    painter.drawRoundedRect(shackleInner, qMax(2, shackleW / 3), qMax(2, shackleW / 3));
+    // =========================
+    // Aro (semióvalo real)
+    // =========================
+    const qreal shW = s * 0.36;
+    const qreal shH = s * 0.36;
+    const qreal shX = (s - shW) * 0.5;
+    const qreal shY = s * 0.12;
 
-    painter.setPen(Qt::NoPen);
-    painter.setBrush(QColor("#1f2432"));
-    const int keyholeW = qMax(2, size / 12);
-    const int keyholeH = qMax(5, size / 7);
-    const int keyholeX = bodyRect.center().x() - (keyholeW / 2);
-    const int keyholeY = bodyRect.center().y() - (keyholeH / 2);
-    painter.drawEllipse(QRect(keyholeX, keyholeY - keyholeW / 2, keyholeW, keyholeW));
-    painter.drawRoundedRect(QRect(keyholeX, keyholeY, keyholeW, keyholeH), 2, 2);
+    const qreal baseY = body.top() + stroke * 0.5;
+    const qreal arcTopY = shY + shH * 0.42;
+
+    QPainterPath shackle;
+    shackle.moveTo(shX, baseY);
+    shackle.lineTo(shX, arcTopY);
+    shackle.arcTo(QRectF(shX, shY, shW, shH), 180.0, -180.0);
+    shackle.lineTo(shX + shW, baseY);
+    shackle.closeSubpath();
+
+    p.setPen(Qt::NoPen);
+    p.setBrush(outline);
+    p.drawPath(shackle);
+
+    // ---- Hueco interno del aro
+    const QRectF innerRect(
+        shX + inset,
+        shY + inset,
+        shW - 2.0 * inset,
+        shH - inset * 1.2
+    );
+
+    const qreal innerBaseY = body.top() - inset * 0.3;
+    const qreal innerArcTopY = innerRect.top() + innerRect.height() * 0.42;
+
+    QPainterPath shackleInner;
+    shackleInner.moveTo(innerRect.left(), innerBaseY);
+    shackleInner.lineTo(innerRect.left(), innerArcTopY);
+    shackleInner.arcTo(innerRect, 180.0, -180.0);
+    shackleInner.lineTo(innerRect.right(), innerBaseY);
+    shackleInner.closeSubpath();
+
+    p.setBrush(dark);
+    p.drawPath(shackleInner);
+
+    // =========================
+    // Cerradura (path unificado)
+    // =========================
+    const qreal r = qMax<qreal>(2.0, s * 0.08);
+    const qreal stemW = r * 0.65;
+    const qreal stemH = s * 0.22;
+
+    const QPointF center = body.center() + QPointF(0, -r * 0.2);
+
+    QPainterPath keyhole;
+    keyhole.addEllipse(center, r, r);
+
+    keyhole.addRoundedRect(
+        QRectF(center.x() - stemW * 0.5,
+               center.y() + r * 0.7,
+               stemW,
+               stemH),
+        stemW * 0.5,
+        stemW * 0.5
+    );
+
+    p.setBrush(dark);
+    p.drawPath(keyhole);
 
     return pixmap;
 }
