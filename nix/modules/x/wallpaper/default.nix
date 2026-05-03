@@ -71,7 +71,11 @@ let
 
     void main() {
         vec2 uv = gl_FragCoord.xy / iResolution.xy;
-        vec3 color = 0.5 + 0.5 * cos(iTime + uv.xyx + vec3(0.0, 2.0, 4.0));
+        uv.x *= iResolution.x / iResolution.y;
+
+        float waveScale = 2.4;
+        vec2 wideUv = uv / waveScale;
+        vec3 color = 0.5 + 0.5 * cos(iTime + wideUv.xyx + vec3(0.0, 2.0, 4.0));
         gl_FragColor = vec4(color, 1.0);
     }
   '';
@@ -79,8 +83,8 @@ let
     default {
       shader ${neowallShaderName}
       shader_speed ${toString (neowall.speed or 1.0)}
-      shader_fps ${toString (neowall.fps or 60)}
-      vsync ${lib.boolToString (neowall.vsync or false)}
+      shader_fps ${toString (neowall.fps or 24)}
+      vsync ${lib.boolToString (neowall.vsync or true)}
       show_fps ${lib.boolToString (neowall.showFps or false)}
     }
   '';
@@ -133,25 +137,23 @@ let
     start_neowall() {
       [ "${lib.boolToString neowallEnable}" = "true" ] || return 1
 
-      echo "ripper-wallpaper: starting neowall"
+      exec 8>"$runtime_dir/ripper-neowall.lock"
+      if ! ${pkgs.util-linux}/bin/flock -n 8; then
+        echo "ripper-wallpaper: neowall supervisor already running"
+        return 0
+      fi
+
+      echo "ripper-wallpaper: starting neowall supervisor"
       ${neowallPackage}/bin/neowall kill >/dev/null 2>&1 || true
-      ${neowallPackage}/bin/neowall &
-      pid="$!"
-      ${pkgs.coreutils}/bin/sleep 0.35
 
-      if kill -0 "$pid" 2>/dev/null; then
-        echo "ripper-wallpaper: neowall is running"
-        return 0
-      fi
-
-      if wait "$pid"; then
-        echo "ripper-wallpaper: neowall started"
-        return 0
-      fi
-
-      status="$?"
-      echo "ripper-wallpaper: neowall failed with status $status"
-      return "$status"
+      while true; do
+        echo "ripper-wallpaper: starting neowall"
+        ${pkgs.coreutils}/bin/nice -n ${toString (neowall.nice or 10)} \
+          ${neowallPackage}/bin/neowall
+        status="$?"
+        echo "ripper-wallpaper: neowall exited with status $status; restarting soon"
+        ${pkgs.coreutils}/bin/sleep ${toString (neowall.restartDelay or 3)}
+      done
     }
 
     if start_neowall; then

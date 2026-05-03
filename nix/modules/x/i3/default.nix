@@ -180,8 +180,6 @@ let
       exit 1
     fi
 
-    "$HOME/.local/bin/ripper-wallpaper-start" >/dev/null 2>&1 || true
-
     if [ -x "$HOME/.local/bin/ripper-picom-start" ]; then
       "$HOME/.local/bin/ripper-picom-start" >/dev/null 2>&1 &
     fi
@@ -259,6 +257,11 @@ in {
         outer = 4;
       };
       startup = [
+        {
+          command = "$HOME/.local/bin/ripper-wallpaper-start";
+          notification = false;
+          always = true;
+        }
         {
           command = "$HOME/.local/bin/ripper-vmware-user";
           notification = false;
