@@ -125,15 +125,16 @@ let
   '';
   polkitAgentStartScript = pkgs.writeShellScript "ripper-polkit-agent-start" ''
     user_name="''${USER:-$(${pkgs.coreutils}/bin/id -un 2>/dev/null || true)}"
-    if [ -n "$user_name" ] && ${pkgs.procps}/bin/pgrep -u "$user_name" -f 'polkit-gnome-authentication-agent-1' >/dev/null 2>&1; then
+    if [ -n "$user_name" ] && ${pkgs.procps}/bin/pgrep -u "$user_name" -f 'lxqt-policykit-agent' >/dev/null 2>&1; then
       exit 0
     fi
 
+    # Usa el agente LXQt personalizado desde home-manager o nixpkgs
     for agent in \
-      ${pkgs.polkit_gnome}/libexec/polkit-gnome-authentication-agent-1 \
-      /usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1 \
-      /usr/lib/policykit-1-gnome/polkit-gnome-authentication-agent-1 \
-      /usr/libexec/polkit-gnome-authentication-agent-1; do
+      ~/.nix-profile/lib/lxqt-policykit-agent/lxqt-policykit-agent \
+      ${pkgs.lxqt.lxqt-policykit}/lib/lxqt-policykit-agent/lxqt-policykit-agent \
+      /usr/lib/lxqt-policykit-agent/lxqt-policykit-agent \
+      /usr/libexec/lxqt-policykit-agent; do
       if [ -x "$agent" ]; then
         "$agent" >/dev/null 2>&1 &
         exit 0
