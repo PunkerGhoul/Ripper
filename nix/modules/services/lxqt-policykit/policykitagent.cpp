@@ -123,6 +123,8 @@ void PolicykitAgent::initiateAuthentication(const QString &actionId,
         connect(session, &PolkitQt1::Agent::Session::showInfo, this, &PolicykitAgent::showInfo);
     }
 
+    // Do not initiate the polkit/PAM session until the user submits a password.
+    // Cancelling the GUI before this point must not consume an authentication attempt.
     connect(m_gui, &QDialog::finished, this, [this, result] (int dialogResult)
     {
         if (!m_inProgress || m_gui == nullptr)
