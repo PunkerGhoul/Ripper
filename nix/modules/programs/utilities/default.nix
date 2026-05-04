@@ -19,6 +19,7 @@
         pkgs.go
         pkgs.logseq
         pkgs.openvpn
+        pkgs.xcd
     ];
     description = "Packages provided by utility program modules.";
   };
