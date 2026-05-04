@@ -1,8 +1,8 @@
-{ config, pkgs, lib, ... }:
+{ pkgs, lib, ... }:
 
 {
   config = {
-    ripper.programs.dev.packages = (config.ripper.programs.dev.packages or []) ++ [ pkgs.nodejs ];
+    ripper.programs.dev.packages = [ pkgs.nodejs ];
 
     home.activation.install-node-dev-packages = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
       set -euo pipefail
