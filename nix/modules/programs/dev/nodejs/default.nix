@@ -1,4 +1,4 @@
-{ pkgs, config, ... }:
+{ config, pkgs, ... }:
 
 {
   config.ripper.programs.dev.packages = (config.ripper.programs.dev.packages or []) ++ [ pkgs.nodejs ];

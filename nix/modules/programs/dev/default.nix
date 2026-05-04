@@ -1,9 +1,9 @@
-{ pkgs, lib, ... }:
+{ config, pkgs, lib, ... }:
 
 {
   imports = [
     (import ./python { inherit pkgs; })
-    (import ./nodejs { inherit pkgs config; })
+    (import ./nodejs { inherit config pkgs; })
   ];
 
   options.ripper.programs.dev.packages = lib.mkOption {
