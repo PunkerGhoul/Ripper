@@ -4,6 +4,7 @@
   imports = [
     (import ./utilities { inherit config pkgs lib unstable env nixGLCommand; })
     (import ./pentesting { inherit pkgs lib; })
+    (import ./dev { inherit pkgs; })
   ];
 
   options.ripper.programs.packages = lib.mkOption {
@@ -14,5 +15,6 @@
 
   config.ripper.programs.packages =
     config.ripper.programs.utilities.packages
-    ++ config.ripper.programs.pentesting.packages;
+    ++ config.ripper.programs.pentesting.packages
+    ++ (config.ripper.programs.dev.packages or []);
 }
