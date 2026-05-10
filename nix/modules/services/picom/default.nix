@@ -23,7 +23,7 @@
       "window_type = 'desktop'"
       "class_g = 'Polybar'"
     ];
-    vSync = false;
+    vSync = true;
     settings = {
       corner-radius = 12;
       round-borders = 1;
@@ -33,8 +33,8 @@
         "window_type = 'desktop'"
         "class_g = 'Polybar'"
       ];
-      use-damage = false;
-      unredir-if-possible = false;
+      use-damage = true;
+      unredir-if-possible = true;
       shadow-radius = 5;
     };
     wintypes = {

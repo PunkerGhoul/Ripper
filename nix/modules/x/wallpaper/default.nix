@@ -106,7 +106,7 @@ let
       default {
         shader ${neowallShaderName}
         shader_speed ${toString (neowall.speed or 1.0)}
-        shader_fps 30
+        shader_fps 24
         vsync false
         show_fps ${lib.boolToString (neowall.showFps or false)}
       }
