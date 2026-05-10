@@ -56,6 +56,6 @@ in
   imports = [
     (import ./x { inherit config pkgs lib installConfig nixGLCommand logoutScript; })
     (import ./programs { inherit config pkgs lib unstable env nixGLCommand; })
-    (import ./services { inherit config pkgs lib logoutScript; })
+    (import ./services { inherit config pkgs lib nixGLCommand logoutScript; })
   ];
 }

@@ -1,4 +1,9 @@
-{ config, pkgs, lib, ... }:
+{ config, pkgs, lib, nixGLCommand, ... }:
+
+let
+  nixGL = import ../../nixgl { inherit pkgs nixGLCommand; };
+  picomPackage = nixGL pkgs.picom;
+in
 
 {
   # Expose a simple services.picom option set so users can enable/configure
@@ -6,7 +11,8 @@
   # extraArgs are passed to the binary at launch.
   services.picom = {
     enable = true;
-    backend = "xrender";
+    package = picomPackage;
+    backend = "glx";
     fade = false;
     fadeDelta = 10;
     fadeSteps = [ 0.028 0.03 ];
@@ -45,8 +51,6 @@
     extraArgs = [];
   };
 
-  home.packages = [ pkgs.picom ];
-
   home.file.".local/bin/ripper-picom-start" = {
     text = ''
       #!${pkgs.runtimeShell}
@@ -58,7 +62,7 @@
 
       ${pkgs.procps}/bin/pkill -u "''${USER:-$(${pkgs.coreutils}/bin/id -un)}" -x picom 2>/dev/null || true
 
-      exec ${pkgs.picom}/bin/picom ${lib.concatStringsSep " " (config.services.picom.extraArgs or [])} >>"$log" 2>&1
+      exec ${config.services.picom.package}/bin/picom ${lib.concatStringsSep " " (config.services.picom.extraArgs or [])} >>"$log" 2>&1
     '';
     executable = true;
   };
