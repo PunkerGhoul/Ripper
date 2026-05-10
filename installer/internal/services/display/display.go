@@ -1,13 +1,14 @@
 package display
 
 import (
+	"fmt"
 	"strings"
 
 	"ripper/installer/internal/config"
 	"ripper/installer/internal/system"
 )
 
-// EnsureDisplayManager orquesta todo el setup de SDDM
+// EnsureDisplayManager orquesta la configuración completa de SDDM
 func EnsureDisplayManager(cfg config.InstallConfig, apply bool) (map[string]string, error) {
 	result := map[string]string{}
 
@@ -33,6 +34,13 @@ func EnsureDisplayManager(cfg config.InstallConfig, apply bool) (map[string]stri
 	} else {
 		result["packages"] = state + ":polkit_ensured"
 	}
+
+	// --- hardening rootless Xorg ---
+	rootlessState, err := EnsureXorgRootlessConfig(apply)
+	if err != nil {
+		return nil, fmt.Errorf("ensure rootless xorg: %w", err)
+	}
+	result["xorg_rootless"] = rootlessState
 
 	// --- sesión ---
 	sessionState, err := EnsureRipperSession(apply)

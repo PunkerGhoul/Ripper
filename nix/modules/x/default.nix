@@ -156,6 +156,11 @@ in
     [ config.home.homeDirectory ]
     (builtins.readFile ./xinitrc);
 
+  home.file.".xserverrc" = {
+    text = builtins.readFile ./xserverrc;
+    executable = true;
+  };
+
   home.file.".local/bin/ripper-vmware-auto-resize" = {
     source = vmwareAutoResizeStart;
     executable = true;
