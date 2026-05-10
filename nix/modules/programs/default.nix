@@ -3,7 +3,7 @@
 {
   imports = [
     (import ./utilities { inherit config pkgs lib unstable env nixGLCommand; })
-    (import ./pentesting { inherit pkgs lib; })
+    (import ./pentesting { inherit pkgs lib unstable nixGLCommand; })
     (import ./dev { inherit config pkgs lib; })
   ];
 
