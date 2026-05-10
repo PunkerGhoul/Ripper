@@ -131,6 +131,7 @@ let
           export RIPPER_REPO_ROOT="$repo_root"
           export RIPPER_HOME_MANAGER_BIN="${home-manager.packages.${system}.home-manager}/bin/home-manager"
           export RIPPER_NIX_BIN="${pkgs.nix}/bin/nix"
+          export NIX_BUILD_SHELL="${pkgs.bash}/bin/bash"
           exec ${installer}/bin/ripper ${command} "$@"
         '';
       };
