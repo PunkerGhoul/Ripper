@@ -110,7 +110,7 @@ let
     let
       pkgs = mkPkgs system;
     in
-    pkgs.buildGo122Module {
+    pkgs.buildGo126Module {
       pname = "ripper-installer";
       version = "1.0.0";
 
