@@ -19,10 +19,6 @@
     ];
     shadow = true;
     shadowOpacity = 0.18;
-    shadowOffsets = [
-        -2
-        -2
-    ];
     shadowExclude = [
       "window_type = 'dock'"
       "window_type = 'desktop'"
