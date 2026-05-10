@@ -2,11 +2,10 @@
 
 {
   # Expose a simple services.picom option set so users can enable/configure
-  # picom in a familiar way. The base config lives in picom.conf managed via
-  # Home Manager and extraArgs are passed to the binary at launch.
+  # picom in a familiar way. Extra config is loaded from picom.conf and
+  # extraArgs are passed to the binary at launch.
   services.picom = {
     enable = true;
-    configFile = "${config.home.homeDirectory}/.config/picom/picom.conf";
     backend = "xrender";
     fade = false;
     fadeDelta = 10;
@@ -41,12 +40,8 @@
       dropdown_menu = { opacity = 1.0; };
       popup_menu = { opacity = 1.0; };
     };
-    extraConfig = '''';
+    extraConfig = builtins.readFile ./picom.conf;
     extraArgs = [];
-  };
-
-  home.file.".config/picom/picom.conf" = {
-    source = ./picom.conf;
   };
 
   home.packages = lib.mkMerge [ (config.home.packages or []) [ pkgs.picom ] ];
@@ -62,7 +57,7 @@
 
       ${pkgs.procps}/bin/pkill -u "''${USER:-$(${pkgs.coreutils}/bin/id -un)}" -x picom 2>/dev/null || true
 
-      exec ${pkgs.picom}/bin/picom ${lib.concatStringsSep " " (config.services.picom.extraArgs or [])} --config "${config.services.picom.configFile}" >>"$log" 2>&1
+      exec ${pkgs.picom}/bin/picom ${lib.concatStringsSep " " (config.services.picom.extraArgs or [])} >>"$log" 2>&1
     '';
     executable = true;
   };
