@@ -1,8 +1,17 @@
-{ pkgs, ... }:
+{ config, pkgs, lib, ... }:
 
+let
+  joinArgs = args: lib.concatStringsSep " " (lib.mapStrings (a: lib.toString a) args);
+in
 {
-  home.file.".config/picom/picom.conf".text = ''
-    backend = "xrender";
+  # Expose a simple services.picom option set so users can enable/configure
+  # picom in a familiar way. Extra config text is appended to the generated
+  # config file and extraArgs are passed to the binary at launch.
+  services.picom = {
+    enable = true;
+    configFile = "${config.home.homeDirectory}/.config/picom/picom.conf";
+    extraConfig = ''
+        backend = "xrender";
     fading = false;
     fade-delta = 10;
     fade-in-step = 0.028;
@@ -41,7 +50,11 @@
       dropdown_menu = { opacity = 1.0; };
       popup_menu = { opacity = 1.0; };
     };
-  '';
+    '';
+    extraArgs = [];
+  };
+
+  home.packages = lib.mkMerge [ (config.home.packages or []) [ pkgs.picom ] ];
 
   home.file.".local/bin/ripper-picom-start" = {
     text = ''
@@ -54,7 +67,7 @@
 
       ${pkgs.procps}/bin/pkill -u "''${USER:-$(${pkgs.coreutils}/bin/id -un)}" -x picom 2>/dev/null || true
 
-      exec ${pkgs.picom}/bin/picom --config "$HOME/.config/picom/picom.conf" >>"$log" 2>&1
+      exec ${pkgs.picom}/bin/picom ${lib.concatStringsSep " " (config.services.picom.extraArgs or [])} --config "${config.services.picom.configFile}" >>"$log" 2>&1
     '';
     executable = true;
   };
