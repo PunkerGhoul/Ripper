@@ -6,7 +6,7 @@
   # extraArgs are passed to the binary at launch.
   services.picom = {
     enable = true;
-    backend = "xrender";
+    backend = "xr_glx_hybrid";
     fade = false;
     fadeDelta = 10;
     fadeSteps = [ 0.028 0.03 ];
