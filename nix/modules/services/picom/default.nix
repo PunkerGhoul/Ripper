@@ -27,6 +27,7 @@
     settings = {
       corner-radius = 12;
       round-borders = 1;
+      xrender-sync-fence = true;
       rounded-corners-exclude = [
         "window_type = 'dock'"
         "window_type = 'desktop'"

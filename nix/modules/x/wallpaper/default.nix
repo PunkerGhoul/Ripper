@@ -168,7 +168,7 @@ let
 
       echo "ripper-wallpaper: starting neowall"
       ${neowallPackage}/bin/neowall kill >/dev/null 2>&1 || true
-      ${pkgs.coreutils}/bin/nice -n ${toString (neowall.nice or 10)} \
+      ${pkgs.coreutils}/bin/nice -n ${toString (neowall.nice or 0)} \
         ${neowallPackage}/bin/neowall &
       pid="$!"
       ${pkgs.coreutils}/bin/sleep 0.35

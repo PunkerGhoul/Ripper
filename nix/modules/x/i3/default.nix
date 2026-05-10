@@ -254,7 +254,7 @@ in {
         {
           command = "$HOME/.local/bin/ripper-wallpaper-start";
           notification = false;
-          always = true;
+          always = false;
         }
         {
           command = "$HOME/.local/bin/ripper-vmware-user";
