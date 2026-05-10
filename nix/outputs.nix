@@ -99,6 +99,7 @@ let
       subPackages = [ "cmd/ripper" ];
       vendorHash = null;
       doCheck = false;
+      builder = "${pkgs.bash}/bin/bash";
     };
 
   mkInstallerApp = system: command:
