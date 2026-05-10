@@ -107,27 +107,26 @@ let
     };
 
   mkInstallerPackage = system:
-    let
-      pkgs = mkPkgs system;
-    in
-    pkgs.buildGo126Module {
-      pname = "ripper-installer";
-      version = "1.0.0";
+  let
+    pkgs = mkPkgs system;
 
-      src = ../installer;
-
-      subPackages = [ "cmd/ripper" ];
-
-      vendorHash = null;
-
-      doCheck = false;
-
-      meta = with pkgs.lib; {
-        description = "Ripper installer CLI";
-        license = licenses.mit;
-        platforms = platforms.linux;
-      };
+    buildGoModule = pkgs.buildGoModule.override {
+      go = pkgs.go_1_26;
     };
+
+  in
+  buildGoModule {
+    pname = "ripper-installer";
+    version = "1.0.0";
+
+    src = ../installer;
+
+    subPackages = [ "cmd/ripper" ];
+
+    vendorHash = null;
+
+    doCheck = false;
+  };
 
   mkInstallerApp = system: command:
     let
