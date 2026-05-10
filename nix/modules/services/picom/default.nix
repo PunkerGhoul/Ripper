@@ -44,7 +44,7 @@
     extraArgs = [];
   };
 
-  home.packages = lib.mkMerge [ (config.home.packages or []) [ pkgs.picom ] ];
+  home.packages = [ pkgs.picom ];
 
   home.file.".local/bin/ripper-picom-start" = {
     text = ''
