@@ -188,7 +188,7 @@ let
 
     # restore previously focused window if xdotool is available
     if command -v "$xdotool_bin" >/dev/null 2>&1 && [ -n "$focusedwindow" ]; then
-      [ "$focusedwindow" = "$($xdotool_bin getactivewindow 2>/dev/null || echo "")" ] && $xdotool_bin windowfocus $focusedwindow || true
+      [ "$focusedwindow" != "$($xdotool_bin getactivewindow 2>/dev/null || echo "")" ] && $xdotool_bin windowfocus $focusedwindow || true
     fi
 
     apply_feh_wallpaper || true

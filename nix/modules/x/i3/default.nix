@@ -219,7 +219,7 @@ in {
         xdotool_bin="${pkgs.xdotool}/bin/xdotool"
         focusedwindow=$($xdotool_bin getactivewindow)
         /usr/bin/flameshot gui  >/dev/null
-        [ "$focusedwindow" = "$($xdotool_bin getactivewindow)" ] && $xdotool_bin windowfocus $focusedwindow
+        [ "$focusedwindow" != "$($xdotool_bin getactivewindow)" ] && $xdotool_bin windowfocus $focusedwindow
       '';
       executable = true;
     };
