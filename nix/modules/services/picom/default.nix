@@ -40,7 +40,7 @@ in
         "class_g = 'Polybar'"
       ];
       use-damage = false;
-      unredir-if-possible = true;
+      unredir-if-possible = false;
       shadow-radius = 5;
       mark-wmwin-focused = true;
       mark-ovlp-focused = true;

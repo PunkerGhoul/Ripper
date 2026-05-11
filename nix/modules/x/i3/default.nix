@@ -404,7 +404,8 @@ in {
     };
     extraConfig = ''
       focus_follows_mouse yes
-      mouse_warping none
+      mouse_warping output
+      focus_on_window_activation focus
       default_orientation horizontal
       workspace_layout default
       default_border pixel 2
