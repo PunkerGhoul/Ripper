@@ -29,19 +29,22 @@ in
       "window_type = 'desktop'"
       "class_g = 'Polybar'"
     ];
-    vSync = true;
+    vSync = false;
     settings = {
-      corner-radius = 12;
-      round-borders = 1;
+      corner-radius = 6;
+      round-borders = 0;
       xrender-sync-fence = true;
       rounded-corners-exclude = [
         "window_type = 'dock'"
         "window_type = 'desktop'"
         "class_g = 'Polybar'"
       ];
-      use-damage = true;
+      use-damage = false;
       unredir-if-possible = true;
       shadow-radius = 5;
+      mark-wmwin-focused = true;
+      mark-ovlp-focused = true;
+      detect-client-opacity = true;
     };
     wintypes = {
       dropdown_menu = { opacity = 1.0; };
