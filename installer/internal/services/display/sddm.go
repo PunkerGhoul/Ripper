@@ -76,7 +76,7 @@ func EnsureSddmEnabled(apply bool) (string, error) {
 
 func renderSddmConfig(loginUser string) string {
 	return fmt.Sprintf(`[General]
-DisplayServer=x11
+DisplayServer=x11-user
 
 [Autologin]
 Relogin=false
