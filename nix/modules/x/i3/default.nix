@@ -275,13 +275,13 @@ in {
       keybindings = lib.mkForce {
         # Menu
         "${modifier}+d" = "exec --no-startup-id ${rofiLauncher}";
-        "${modifier}+b" = "exec --no-startup-id ${pkgs.librewolf}/bin/librewolf -P Pentesting";
+        "${modifier}+b" = "exec --no-startup-id ${pkgs.librewolf}/bin/librewolf -P Personal";
         "${modifier}+Return" = "exec --no-startup-id ${kittyLauncher}";
         "XF86AudioRaiseVolume" = "exec --no-startup-id ${pkgs.pamixer}/bin/pamixer --allow-boost --increase 5";
         "XF86AudioLowerVolume" = "exec --no-startup-id ${pkgs.pamixer}/bin/pamixer --decrease 5";
         "XF86AudioMute" = "exec --no-startup-id ${pkgs.pamixer}/bin/pamixer --toggle-mute";
         # LockScreen
-        "${modifier}+x" = "exec $HOME/.config/i3/scripts/lock";
+        "${modifier}+x" = "exec --no-startup-id $HOME/.config/i3/scripts/lock";
         # Print Screen with FlameShot
         "Print" = "exec --no-startup-id $HOME/.config/i3/scripts/flameshot";
         # Resize Mode
@@ -402,7 +402,9 @@ in {
         "4" = [{ class = "obsidian"; }];
       };
     };
-    extraConfig = ''
+    extraConfig = let
+      configFile = builtins.readFile ./config;
+    in ''
       focus_follows_mouse yes
       mouse_warping output
       focus_on_window_activation focus
@@ -416,6 +418,8 @@ in {
       client.unfocused        #241833 #241833 #a68ac7 #3a2653 #3a2653
       client.urgent           #d75f8f #d75f8f #ffffff #d75f8f #d75f8f
       client.placeholder      #1b1326 #1b1326 #d9c7ff #1b1326 #1b1326
+
+      ${configFile}
     '';
   };
 }
