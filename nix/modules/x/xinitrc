@@ -11,5 +11,6 @@ fi
 
 export DISPLAY=:0
 export XAUTHORITY="{{homeDirectory}}/.Xauthority"
-/usr/bin/dbus-update-activation-environment --systemd DBUS_SESSION_BUS_ADDRESS DISPLAY XAUTHORITY
+export XDG_DATA_DIRS="{{homeDirectory}}/.local/share:{{homeDirectory}}/.nix-profile/share:{{homeDirectory}}/.local/state/nix/profiles/profile/share:/var/lib/flatpak/exports/share:''${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
+/usr/bin/dbus-update-activation-environment --systemd DBUS_SESSION_BUS_ADDRESS DISPLAY XAUTHORITY XDG_DATA_DIRS
 
