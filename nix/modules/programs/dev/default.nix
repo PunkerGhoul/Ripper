@@ -22,6 +22,7 @@ in
         pkgs.cargo
         pkgs.gcc
         clang
+        pkgs.pkg-config
     ]
     ++ config.ripper.programs.dev.python.packages
     ++ config.ripper.programs.dev.nodejs.packages;
