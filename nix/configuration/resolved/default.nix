@@ -36,19 +36,6 @@ in
       fi
     }
 
-    echo "debug: activation resolved start"
-    echo "debug: SYSTEMCTL=$SYSTEMCTL"
-    echo "debug: INSTALL=$INSTALL"
-    echo "debug: MKDIR=$MKDIR"
-    echo "debug: LN=$LN"
-    echo "debug: RM=$RM"
-    echo "debug: CMP=$CMP"
-    echo "debug: PRINTF=$PRINTF"
-    echo "debug: MKTEMP=$MKTEMP"
-    echo "debug: GREP=$GREP"
-    echo "debug: hostName=${hostName}"
-    echo "debug: hostEntry=${hostEntry}"
-
     if [[ ! -x "$SYSTEMCTL" ]]; then
       echo "systemctl not found; skipping"
       exit 0
@@ -58,7 +45,6 @@ in
       echo "sudo not available; skipping"
       exit 0
     fi
-    echo "debug: sudo=/usr/bin/sudo"
 
     /usr/bin/sudo "$SYSTEMCTL" enable systemd-resolved || \
       echo "warning: could not enable systemd-resolved"
