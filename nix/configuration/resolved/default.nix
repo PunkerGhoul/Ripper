@@ -1,9 +1,9 @@
-{ config, pkgs, lib, ... }:
+{ config, pkgs, lib, installConfig, ... }:
 
 let
   resolvedConf = pkgs.writeText "99-ripper-dns.conf" (builtins.readFile ./resolved.conf);
   networkManagerConf = pkgs.writeText "99-ripper-dns.conf" (builtins.readFile ./networkmanager.conf);
-  hostName = config.networking.hostName or "";
+  hostName = installConfig.hostName or "";
   hostEntry =
     if hostName == "" then
       ""

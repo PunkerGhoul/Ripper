@@ -6,6 +6,7 @@ func RenderInstallConfig(cfg InstallConfig) string {
 	return fmt.Sprintf(`{
   username = %q;
   homeDirectory = %q;
+  hostName = %q;
   system = %q;
   distro = %q;
   stateVersion = %q;
@@ -31,5 +32,5 @@ func RenderInstallConfig(cfg InstallConfig) string {
     };
   };
 }
-`, cfg.Username, cfg.HomeDirectory, cfg.System, cfg.Distro, cfg.StateVersion, cfg.GPUWrapper)
+`, cfg.Username, cfg.HomeDirectory, cfg.HostName, cfg.System, cfg.Distro, cfg.StateVersion, cfg.GPUWrapper)
 }

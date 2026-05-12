@@ -63,9 +63,16 @@ func DetectConfig() (InstallConfig, error) {
 		return InstallConfig{}, err
 	}
 
+	hostName, err := os.Hostname()
+	if err != nil {
+		hostName = ""
+	}
+	hostName = strings.TrimSpace(hostName)
+
 	return InstallConfig{
 		Username:      username,
 		HomeDirectory: current.HomeDir,
+		HostName:      hostName,
 		System:        system,
 		Distro:        detectDistro(),
 		GPUWrapper:    "mesa",
