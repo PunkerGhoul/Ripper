@@ -19,6 +19,7 @@
       pkgs.sage
       pkgs.logseq
       pkgs.openvpn
+      pkgs.xxd
       pkgs.xcd
       pkgs.xclip
       pkgs.unzip
