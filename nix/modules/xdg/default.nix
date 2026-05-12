@@ -15,7 +15,7 @@
 		};
 
 		portal = {
-			enable = true;
+			enable = false;
 			config = {
 				common = {
 					default = [ "gtk" ];
