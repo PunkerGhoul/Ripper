@@ -186,7 +186,7 @@ let
     ${pkgs.numlockx}/bin/numlockx on >/dev/null 2>&1 || true
     ${pkgs.networkmanagerapplet}/bin/nm-applet >/dev/null 2>&1 &
 
-    exec ${pkgs.i3}/bin/i3 -c "$HOME/.config/i3/config"
+    exec dbus-launch --exit-with-session ${pkgs.i3}/bin/i3 -c "$HOME/.config/i3/config"
   '';
 in {
 
