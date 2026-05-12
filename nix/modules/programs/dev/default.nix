@@ -1,5 +1,14 @@
 { config, pkgs, lib, ... }:
 
+let
+  clang = pkgs.runCommand "clang-dev-tools" { } ''
+    mkdir -p "$out/bin"
+    ln -s ${pkgs.clang}/bin/clang "$out/bin/clang"
+    ln -s ${pkgs.clang}/bin/clang++ "$out/bin/clang++"
+    ln -s ${pkgs.clang}/bin/clang-cpp "$out/bin/clang-cpp"
+  '';
+in
+
 {
   imports = [
     (import ./python { inherit pkgs lib; })
@@ -12,7 +21,7 @@
         pkgs.go
         pkgs.cargo
         pkgs.gcc
-        pkgs.clang
+        clang
     ]
     ++ config.ripper.programs.dev.python.packages
     ++ config.ripper.programs.dev.nodejs.packages;
