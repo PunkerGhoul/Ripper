@@ -20,6 +20,12 @@
       pkgs.logseq
       pkgs.openvpn
       pkgs.xcd
+      pkgs.xclip
+      pkgs.unzip
+      pkgs.zip
+      pkgs.gnutar
+      pkgs.gzip
+      pkgs.basez
     ];
     description = "Packages provided by utility program modules.";
   };
