@@ -568,8 +568,8 @@ export PATH
 export XDG_DATA_DIRS
 
 export XDG_CURRENT_DESKTOP=i3
-export XDG_SESSION_DESKTOP=ripper
-export DESKTOP_SESSION=ripper
+export XDG_SESSION_DESKTOP=i3
+export DESKTOP_SESSION=i3
 
 if command -v dbus-update-activation-environment >/dev/null 2>&1; then
   dbus-update-activation-environment --systemd DISPLAY XAUTHORITY XDG_CURRENT_DESKTOP XDG_SESSION_DESKTOP DESKTOP_SESSION

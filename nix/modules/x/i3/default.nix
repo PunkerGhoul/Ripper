@@ -159,13 +159,17 @@ let
     fi
 
     export XDG_CURRENT_DESKTOP=i3
-    export XDG_SESSION_DESKTOP=ripper
+    export XDG_SESSION_DESKTOP=i3
     export XDG_SESSION_TYPE=x11
-    export DESKTOP_SESSION=ripper
+    export DESKTOP_SESSION=i3
 
     if command -v dbus-update-activation-environment >/dev/null 2>&1; then
       dbus-update-activation-environment --systemd \
         DISPLAY XAUTHORITY XDG_DATA_DIRS XDG_CURRENT_DESKTOP XDG_SESSION_DESKTOP XDG_SESSION_TYPE DESKTOP_SESSION >/dev/null 2>&1 || true
+    fi
+
+    if command -v systemctl >/dev/null 2>&1; then
+      systemctl --user enable --now xdg-desktop-portal.service xdg-desktop-portal-gtk.service >/dev/null 2>&1 || true
     fi
 
     if ${pkgs.i3}/bin/i3-msg -t get_version >/dev/null 2>&1; then
