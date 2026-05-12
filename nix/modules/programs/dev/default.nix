@@ -2,7 +2,7 @@
 
 {
   imports = [
-    (import ./python { inherit pkgs; })
+    (import ./python { inherit pkgs lib; })
     (import ./nodejs { inherit pkgs lib; })
   ];
 
@@ -13,7 +13,9 @@
         pkgs.cargo
         pkgs.gcc
         pkgs.clang
-    ];
+    ]
+    ++ config.ripper.programs.dev.python.packages
+    ++ config.ripper.programs.dev.nodejs.packages;
     description = "Packages provided by dev program modules (python/nodejs).";
   };
 }

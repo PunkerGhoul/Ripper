@@ -1,9 +1,12 @@
-{ pkgs, ... }:
+{ pkgs, lib, ... }:
 
 {
-  # Provide a Python runtime with common dev dependencies preinstalled
-  config.ripper.programs.dev.packages = [
-    (pkgs.python314.withPackages (ps: with ps; [ requests colorama rich tqdm ]))
-    pkgs.python314Packages.pip
-  ];
+  options.ripper.programs.dev.python.packages = lib.mkOption {
+    type = with lib.types; listOf package;
+    default = [
+      (pkgs.python314.withPackages (ps: with ps; [ requests colorama rich tqdm ]))
+      pkgs.python314Packages.pip
+    ];
+    description = "Python packages provided by the dev Python module.";
+  };
 }
