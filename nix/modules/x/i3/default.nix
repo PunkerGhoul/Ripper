@@ -404,6 +404,10 @@ in {
     extraConfig = let
       configFile = builtins.readFile ./config;
     in ''
+      # Fix for workspace switching "locus" bug
+      # force_focus_wrapping interacts poorly with focus_follows_mouse
+      force_focus_wrapping no
+      
       focus_follows_mouse yes
       mouse_warping output
       focus_on_window_activation focus
