@@ -405,12 +405,16 @@ in {
       configFile = builtins.readFile ./config;
     in ''
       # Fix for workspace switching "locus" bug
-      # force_focus_wrapping interacts poorly with focus_follows_mouse
+      # When switching to empty workspaces, focus can get stuck
+      # Using focus_wrapping no instead of force_focus_wrapping
+      focus_wrapping no
       force_focus_wrapping no
       
-      focus_follows_mouse yes
+      # Disable focus_follows_mouse to prevent focus jumping to empty workspaces
+      focus_follows_mouse no
+      
       mouse_warping output
-      focus_on_window_activation focus
+      focus_on_window_activation smart
       default_orientation horizontal
       workspace_layout default
       default_border pixel 2
