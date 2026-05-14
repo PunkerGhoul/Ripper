@@ -17,6 +17,7 @@
     type = with lib.types; listOf package;
     default = [
       pkgs.curl
+      pkgs.cron
       pkgs.wget
       pkgs.sage
       pkgs.logseq
@@ -26,6 +27,7 @@
       pkgs.xclip
       pkgs.tree
       pkgs.unzip
+      pkgs.rsync
       pkgs.zip
       pkgs.gnutar
       pkgs.gzip
