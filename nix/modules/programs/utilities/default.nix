@@ -19,6 +19,7 @@
       pkgs.curl
       pkgs.cron
       pkgs.wget
+      pkgs.ffmpeg
       pkgs.sage
       pkgs.logseq
       pkgs.openvpn
