@@ -16,12 +16,15 @@
   options.ripper.programs.utilities.packages = lib.mkOption {
     type = with lib.types; listOf package;
     default = [
+      pkgs.curl
+      pkgs.wget
       pkgs.sage
       pkgs.logseq
       pkgs.openvpn
       pkgs.xxd
       pkgs.xcd
       pkgs.xclip
+      pkgs.tree
       pkgs.unzip
       pkgs.zip
       pkgs.gnutar
