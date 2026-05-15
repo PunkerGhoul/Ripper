@@ -47,19 +47,6 @@ let
 
       overlays = [
         nur.overlays.default
-
-        (final: prev: {
-          pythonPackagesExtensions = prev.pythonPackagesExtensions ++ [
-            (python-final: python-prev: {
-              pyqtgraph = python-prev.pyqtgraph.overridePythonAttrs (old: {
-                disabledTests = (old.disabledTests or [ ]) ++ [
-                  "test_plotscene"
-                  "test_simple"
-                ];
-              });
-            })
-          ];
-        })
       ];
     };
 
