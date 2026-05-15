@@ -15,25 +15,27 @@
 
   options.ripper.programs.utilities.packages = lib.mkOption {
     type = with lib.types; listOf package;
-    default = [
-      pkgs.curl
-      pkgs.cron
-      pkgs.wget
-      pkgs.ffmpeg
-      pkgs.sage
-      pkgs.logseq
-      pkgs.openvpn
-      pkgs.xxd
-      pkgs.xcd
-      pkgs.xclip
-      pkgs.tree
-      pkgs.unzip
-      pkgs.rsync
-      pkgs.zip
-      pkgs.gnutar
-      pkgs.gzip
-      pkgs.basez
-    ];
+    default = [];
     description = "Packages provided by utility program modules.";
   };
+
+  config.ripper.programs.utilities.packages = [
+    pkgs.curl
+    pkgs.cron
+    pkgs.wget
+    pkgs.ffmpeg
+    pkgs.sage
+    pkgs.logseq
+    pkgs.openvpn
+    pkgs.xxd
+    pkgs.xcd
+    pkgs.xclip
+    pkgs.tree
+    pkgs.unzip
+    pkgs.rsync
+    pkgs.zip
+    pkgs.gnutar
+    pkgs.gzip
+    pkgs.basez
+  ];
 }

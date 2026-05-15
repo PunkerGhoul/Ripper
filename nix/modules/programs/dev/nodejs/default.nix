@@ -3,11 +3,13 @@
 {
   options.ripper.programs.dev.nodejs.packages = lib.mkOption {
     type = with lib.types; listOf package;
-    default = [
-      pkgs.nodejs
-    ];
+    default = [];
     description = "Node.js packages provided by the dev Node.js module.";
   };
+
+  config.ripper.programs.dev.nodejs.packages = [
+    pkgs.nodejs
+  ];
 
   config.home.activation.install-node-dev-packages = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
     set -euo pipefail
