@@ -23,6 +23,7 @@
     pkgs.curl
     pkgs.cron
     pkgs.wget
+    pkgs.ripgrep
     pkgs.ffmpeg
     pkgs.sage
     pkgs.logseq
