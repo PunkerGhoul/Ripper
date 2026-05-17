@@ -25,7 +25,7 @@
     pkgs.wget
     pkgs.ripgrep
     pkgs.ffmpeg
-    pkgs.netcat
+    pkgs.netcat-gnu
     pkgs.sage
     pkgs.logseq
     pkgs.openvpn
