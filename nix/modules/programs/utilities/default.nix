@@ -3,6 +3,7 @@
 {
   imports = [
     (import ./bat { inherit pkgs; })
+    (import ./codex { inherit pkgs; })
     (import ./git { inherit pkgs env; })
     (import ./jq { inherit pkgs; })
     (import ./fzf { inherit pkgs; })
