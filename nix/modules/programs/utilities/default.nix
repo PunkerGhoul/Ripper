@@ -21,7 +21,11 @@
     pkgs.ripgrep
     pkgs.ffmpeg
     pkgs.netcat-gnu
-    pkgs.sage
+    # Workaround for Sage doctest failures seen on some nixos-unstable revisions.
+    # This may be unnecessary with a different nixpkgs revision/channel, such as nixpkgs-unstable.
+    (pkgs.sage.overrideAttrs (_: {
+      doInstallCheck = false;
+    }))
     pkgs.logseq
     pkgs.openvpn
     pkgs.xxd
