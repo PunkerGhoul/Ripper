@@ -14,13 +14,7 @@
     (import ./zsh { inherit config pkgs lib; })
   ];
 
-  options.ripper.programs.utilities.packages = lib.mkOption {
-    type = with lib.types; listOf package;
-    default = [];
-    description = "Packages provided by utility program modules.";
-  };
-
-  config.ripper.programs.utilities.packages = [
+  config.ripper.programs.packages = [
     pkgs.curl
     pkgs.cron
     pkgs.wget

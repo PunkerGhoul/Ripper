@@ -1,4 +1,4 @@
-{ config, pkgs, lib, ... }:
+{ pkgs, lib, ... }:
 
 let
   clang = pkgs.runCommand "clang-dev-tools" { } ''
@@ -11,23 +11,15 @@ in
 
 {
   imports = [
-    (import ./python { inherit pkgs lib; })
+    (import ./python { inherit pkgs; })
     (import ./nodejs { inherit pkgs lib; })
   ];
 
-  options.ripper.programs.dev.packages = lib.mkOption {
-    type = with lib.types; listOf package;
-    default = [];
-    description = "Packages provided by dev program modules (python/nodejs).";
-  };
-
-  config.ripper.programs.dev.packages = [
+  config.ripper.programs.packages = [
     pkgs.go
     pkgs.cargo
     pkgs.gcc
     clang
     pkgs.pkg-config
-  ]
-  ++ config.ripper.programs.dev.python.packages
-  ++ config.ripper.programs.dev.nodejs.packages;
+  ];
 }

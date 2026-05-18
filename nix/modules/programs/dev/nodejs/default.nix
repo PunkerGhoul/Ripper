@@ -1,13 +1,7 @@
 { pkgs, lib, ... }:
 
 {
-  options.ripper.programs.dev.nodejs.packages = lib.mkOption {
-    type = with lib.types; listOf package;
-    default = [];
-    description = "Node.js packages provided by the dev Node.js module.";
-  };
-
-  config.ripper.programs.dev.nodejs.packages = [
+  config.ripper.programs.packages = [
     pkgs.nodejs
   ];
 

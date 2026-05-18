@@ -12,9 +12,4 @@
     default = [];
     description = "Combined package list from the program modules.";
   };
-
-  config.ripper.programs.packages =
-    config.ripper.programs.utilities.packages
-    ++ config.ripper.programs.pentesting.packages
-    ++ (config.ripper.programs.dev.packages or []);
 }

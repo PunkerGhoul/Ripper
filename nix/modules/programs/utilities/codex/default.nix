@@ -1,5 +1,5 @@
 { pkgs, ... }:
 
 {
-  ripper.programs.utilities.packages = [ pkgs.codex ];
+  ripper.programs.packages = [ pkgs.codex ];
 }
