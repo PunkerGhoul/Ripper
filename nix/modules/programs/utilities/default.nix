@@ -1,4 +1,4 @@
-{ config, pkgs, lib, unstable, env, nixGLCommand, ... }:
+{ config, pkgs, lib, unstable, nixosPkgs, env, nixGLCommand, ... }:
 
 {
   imports = [
@@ -21,9 +21,9 @@
     pkgs.ripgrep
     pkgs.ffmpeg
     pkgs.netcat-gnu
-    # Workaround for Sage doctest failures seen on some nixos-unstable revisions.
-    # This may be unnecessary with a different nixpkgs revision/channel, such as nixpkgs-unstable.
-    (pkgs.sage.overrideAttrs (_: {
+    # Sage is intentionally sourced from nixosPkgs; switch to pkgs.sage to use the base nixpkgs input.
+    # The install check override works around Sage doctest failures seen on some nixos-unstable revisions.
+    (nixosPkgs.sage.overrideAttrs (_: {
       doInstallCheck = false;
     }))
     pkgs.logseq

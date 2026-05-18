@@ -2,6 +2,7 @@
 , pkgs
 , lib
 , unstable
+, nixosPkgs
 , username
 , homeDirectory
 , stateVersion
@@ -128,6 +129,6 @@ in {
 
   imports = [
     (import ./configuration { inherit pkgs; })
-    (import ./modules { inherit config pkgs unstable lib env installConfig nixGLCommand; })
+    (import ./modules { inherit config pkgs unstable nixosPkgs lib env installConfig nixGLCommand; })
   ];
 }

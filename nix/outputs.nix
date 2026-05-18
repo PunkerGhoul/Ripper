@@ -1,4 +1,4 @@
-inputs@{ self, nixpkgs, home-manager, nixgl, nur, ... }:
+inputs@{ self, nixpkgs, nixos, home-manager, nixgl, nur, ... }:
 let
   supportedSystems = [
     "x86_64-linux"
@@ -39,8 +39,8 @@ let
       { }
   );
 
-  mkPkgs = system:
-    import nixpkgs {
+  mkPkgsFrom = source: system:
+    import source {
       inherit system;
 
       config.allowUnfree = true;
@@ -49,6 +49,10 @@ let
         nur.overlays.default
       ];
     };
+
+  mkPkgs = mkPkgsFrom nixpkgs;
+
+  mkNixosPkgs = mkPkgsFrom nixos;
 
   mkNixGLCommand = system: pkgs: gpu:
     let
@@ -87,6 +91,7 @@ let
     let
       system = cfg.system;
       pkgs = mkPkgs system;
+      nixosPkgs = mkNixosPkgs system;
     in
     home-manager.lib.homeManagerConfiguration {
       inherit pkgs;
@@ -101,6 +106,7 @@ let
         installConfig = cfg;
 
         unstable = pkgs;
+        inherit nixosPkgs;
 
         nixGLCommand = mkNixGLCommand system pkgs (cfg.gpu or { });
       };

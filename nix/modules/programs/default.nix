@@ -1,8 +1,8 @@
-{ config, pkgs, lib, unstable, env, nixGLCommand, ... }:
+{ config, pkgs, lib, unstable, nixosPkgs, env, nixGLCommand, ... }:
 
 {
   imports = [
-    (import ./utilities { inherit config pkgs lib unstable env nixGLCommand; })
+    (import ./utilities { inherit config pkgs lib unstable nixosPkgs env nixGLCommand; })
     (import ./pentesting { inherit pkgs lib unstable nixGLCommand; })
     (import ./dev { inherit config pkgs lib; })
   ];
