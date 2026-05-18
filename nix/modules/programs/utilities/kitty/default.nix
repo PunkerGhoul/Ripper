@@ -10,7 +10,20 @@ in
   home.file.".local/bin/ripper-kitty" = {
     text = ''
       #!${pkgs.runtimeShell}
-      exec ${kittyPackage}/bin/kitty --single-instance "$@"
+      set -eu
+
+      state_dir="''${XDG_STATE_HOME:-$HOME/.local/state}/ripper/kitty"
+      ${pkgs.coreutils}/bin/mkdir -p "$state_dir"
+      log="$state_dir/kitty.log"
+
+      # Keep long-lived Kitty processes from retaining excessive glibc arenas.
+      export MALLOC_ARENA_MAX=2
+      export MALLOC_TRIM_THRESHOLD_=131072
+
+      {
+        printf '[%s] starting kitty pid=%s args=%s\n' "$(${pkgs.coreutils}/bin/date -Is)" "$$" "$*"
+        exec ${kittyPackage}/bin/kitty "$@"
+      } >>"$log" 2>&1
     '';
     executable = true;
   };
@@ -50,10 +63,11 @@ in
       tab_bar_style = "powerline";
       tab_powerline_style = "round";
       background_opacity = 0.5;
-      input_delay = 0;
-      repaint_delay = 2;
-      resize_debounce_time = "0 0";
+      input_delay = 3;
+      repaint_delay = 10;
+      resize_debounce_time = "0.1 0.5";
       scrollback_lines = 1000;
+      close_on_child_death = "no";
       sync_to_monitor = "no";
       shell = "${pkgs.zsh}/bin/zsh";
       term = "xterm-256color";
