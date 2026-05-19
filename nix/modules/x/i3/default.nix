@@ -237,12 +237,12 @@ in {
       };
       window = {
         titlebar = false;
-        border = 2;
+        border = 1;
         hideEdgeBorders = "none";
       };
       floating = {
         titlebar = false;
-        border = 2;
+        border = 1;
         # Use Mouse+$mod to drag floating windows to their wanted position
       };
       gaps = {
@@ -425,12 +425,12 @@ in {
       focus_on_window_activation smart
       default_orientation horizontal
       workspace_layout default
-      default_border pixel 2
-      default_floating_border pixel 2
+      default_border pixel 1
+      default_floating_border pixel 1
       hide_edge_borders none
-      client.focused          #8e5cff #8e5cff #f7f0ff #b983ff #b983ff
-      client.focused_inactive #4b2f6f #4b2f6f #d9c7ff #6f42a8 #6f42a8
-      client.unfocused        #241833 #241833 #a68ac7 #3a2653 #3a2653
+      client.focused          #7b4dff #7b4dff #f7f0ff #7b4dff #7b4dff
+      client.focused_inactive #2b2038 #2b2038 #d9c7ff #2b2038 #2b2038
+      client.unfocused        #18131f #18131f #a68ac7 #18131f #18131f
       client.urgent           #d75f8f #d75f8f #ffffff #d75f8f #d75f8f
       client.placeholder      #1b1326 #1b1326 #d9c7ff #1b1326 #1b1326
 

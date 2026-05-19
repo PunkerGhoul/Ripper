@@ -21,6 +21,7 @@ in
     menuOpacity = 1.0;
     opacityRules = [
       "70:class_i = 'presel_feedback'"
+      "100:class_g = 'i3-frame'"
     ];
     shadow = true;
     shadowOpacity = 0.18;
@@ -28,6 +29,7 @@ in
       "window_type = 'dock'"
       "window_type = 'desktop'"
       "class_g = 'Polybar'"
+      "class_g = 'i3-frame'"
     ];
     vSync = false;
     settings = {
@@ -38,6 +40,7 @@ in
         "window_type = 'dock'"
         "window_type = 'desktop'"
         "class_g = 'Polybar'"
+        "class_g = 'i3-frame'"
       ];
       use-damage = false;
       unredir-if-possible = false;
