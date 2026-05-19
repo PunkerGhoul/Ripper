@@ -1,5 +1,5 @@
-{ pkgs, ... }:
+{ nixosPkgs, ... }:
 
 {
-  ripper.programs.packages = [ pkgs.codex ];
+  ripper.programs.packages = [ nixosPkgs.codex ];
 }
