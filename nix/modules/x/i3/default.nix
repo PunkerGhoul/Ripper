@@ -364,6 +364,9 @@ in {
       #keycodebindings = {
       #  "${modifier}+40" = "exec \"rofi -modi run,run -show run\"";
       #};
+      keycodebindings = {
+        "${modifier}+Shift+201" = "exec --no-startup-id $HOME/.local/bin/ripper-keyboard-layout double-tap-cycle";
+      };
       modes = {
         # Resize window (you can also use the mouse for that)
         resize = {
