@@ -47,12 +47,15 @@ in
     };
     keybindings = {
       "kitty_mod+y" = "new_tab_with_cwd";
+      "kitty_mod+enter" = "new_window_with_cwd";
+      "kitty_mod+space" = "new_window";
     };
     shellIntegration = {
       mode = null;
     };
     settings = {
       include = "color.ini";
+      kitty_mod = "ctrl+shift";
       disable_ligatures = "never";
       url_color = "#b96507";
       url_style = "curly";
