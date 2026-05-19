@@ -256,6 +256,11 @@ in {
           always = false;
         }
         {
+          command = "$HOME/.local/bin/ripper-wallpaper-resize-watch";
+          notification = false;
+          always = true;
+        }
+        {
           command = "$HOME/.local/bin/ripper-vmware-user";
           notification = false;
           always = true;

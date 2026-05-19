@@ -3,6 +3,19 @@
 let
   nixGL = import ../../nixgl { inherit pkgs nixGLCommand; };
   neowallPackage = nixGL pkgs.neowall;
+  wallpaperWatchPackage = pkgs.rustPlatform.buildRustPackage {
+    pname = "ripper-wallpaper-watch";
+    version = "0.1.0";
+
+    src = ./watcher;
+    cargoLock.lockFile = ./watcher/Cargo.lock;
+
+    nativeBuildInputs = [ pkgs.pkg-config ];
+    buildInputs = [
+      pkgs.libx11
+      pkgs.libxrandr
+    ];
+  };
 
   wallpaper = installConfig.wallpaper or { };
   feh = wallpaper.feh or { };
@@ -193,16 +206,63 @@ let
 
     apply_feh_wallpaper || true
   '';
+
+  wallpaperResizeWatchScript = ''
+    #!${pkgs.runtimeShell}
+    set -u
+
+    runtime_dir="''${XDG_RUNTIME_DIR:-/tmp/ripper-runtime-$UID}"
+    mkdir -p "$runtime_dir"
+    chmod 700 "$runtime_dir" 2>/dev/null || true
+    log="$runtime_dir/ripper-wallpaper-resize.log"
+    exec >>"$log" 2>&1
+
+    if [ -z "''${DISPLAY:-}" ]; then
+      export DISPLAY=:0
+    fi
+
+    if [ -z "''${XAUTHORITY:-}" ] && [ -r "$HOME/.Xauthority" ]; then
+      export XAUTHORITY="$HOME/.Xauthority"
+    fi
+
+    exec 9>"$runtime_dir/ripper-wallpaper-resize.lock"
+    if ! ${pkgs.util-linux}/bin/flock -n 9; then
+      echo "ripper-wallpaper-resize-watch: already running; requesting wallpaper restart"
+      "$HOME/.local/bin/ripper-wallpaper-start"
+      exit 0
+    fi
+
+    echo "ripper-wallpaper-resize-watch: start $(${pkgs.coreutils}/bin/date) DISPLAY=''${DISPLAY:-unset}"
+
+    exec ${wallpaperWatchPackage}/bin/ripper-wallpaper-watch "$HOME/.local/bin/ripper-wallpaper-start"
+  '';
 in
 {
+  home.activation.stop-obsolete-wallpaper-watchers = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    user_name="''${USER:-$(${pkgs.coreutils}/bin/id -un 2>/dev/null || true)}"
+    if [ -n "$user_name" ]; then
+      ${pkgs.procps}/bin/pkill -u "$user_name" -f ripper-wallpaper-resize-watch 2>/dev/null || true
+      ${pkgs.procps}/bin/pkill -u "$user_name" -x ripper-wallpaper-watch 2>/dev/null || true
+    fi
+
+    if [ -n "''${DISPLAY:-}" ] && [ -x "$HOME/.local/bin/ripper-wallpaper-resize-watch" ]; then
+      "$HOME/.local/bin/ripper-wallpaper-resize-watch" >/dev/null 2>&1 &
+    fi
+  '';
+
   home.packages =
     lib.optionals fehEnable [ pkgs.feh ]
-    ++ lib.optionals neowallEnable [ neowallPackage pkgs.xdotool ];
+    ++ lib.optionals neowallEnable [ neowallPackage wallpaperWatchPackage pkgs.xdotool ];
 
   home.file =
     {
       ".local/bin/ripper-wallpaper-start" = {
         text = wallpaperStartScript;
+        executable = true;
+      };
+
+      ".local/bin/ripper-wallpaper-resize-watch" = {
+        text = wallpaperResizeWatchScript;
         executable = true;
       };
     }
