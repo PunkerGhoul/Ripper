@@ -30,6 +30,7 @@
     pkgs.openvpn
     pkgs.xxd
     pkgs.xcd
+    pkgs.xdg-utils
     pkgs.xclip
     pkgs.tree
     pkgs.unzip

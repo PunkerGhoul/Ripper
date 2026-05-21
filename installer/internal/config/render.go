@@ -26,7 +26,7 @@ func RenderInstallConfig(cfg InstallConfig) string {
       enable = true;
       shaderName = "ripper.glsl";
       speed = 1.0;
-      vsync = true;
+      vsync = false;
       showFps = false;
       nice = 10;
     };

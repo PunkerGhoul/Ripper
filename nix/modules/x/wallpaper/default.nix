@@ -74,8 +74,8 @@ let
   fehMode = feh.mode or "center";
   fehFlag = fehModes.${fehMode} or (throw "Unsupported wallpaper.feh.mode: ${fehMode}");
 
-    neowallShaderName = neowall.shaderName or neowall.shader or "ripper.glsl";
-    defaultNeowallGlsl = builtins.readFile ./shaders/ripper.glsl;
+  neowallShaderName = neowall.shaderName or neowall.shader or "ripper.glsl";
+  defaultNeowallGlsl = builtins.readFile ./shaders/ripper.glsl;
   sanitizeNeowallGlsl = glsl:
     let
       withoutLeadingNewline = lib.removePrefix "\n" glsl;
@@ -115,14 +115,40 @@ let
     else
       defaultNeowallGlsl
     );
-    neowallConfig = neowall.config or ''
-      default {
-        shader ${neowallShaderName}
-        shader_speed ${toString (neowall.speed or 1.0)}
-        shader_fps 24
-        vsync false
-        show_fps ${lib.boolToString (neowall.showFps or false)}
+  neowallConfig = neowall.config or ''
+    default {
+      shader ${neowallShaderName}
+      shader_speed ${toString (neowall.speed or 1.0)}
+      shader_fps 24
+      vsync false
+      show_fps ${lib.boolToString (neowall.showFps or false)}
+    }
+  '';
+
+  startNeowallScript =
+    if neowallEnable then ''
+      start_neowall() {
+        echo "ripper-wallpaper: starting neowall"
+        ${neowallPackage}/bin/neowall kill >/dev/null 2>&1 || true
+        ${pkgs.coreutils}/bin/nice -n ${toString (neowall.nice or 0)} \
+          ${neowallPackage}/bin/neowall &
+        pid="$!"
+        ${pkgs.coreutils}/bin/sleep 0.35
+
+        if kill -0 "$pid" 2>/dev/null; then
+          echo "ripper-wallpaper: neowall is running"
+        else
+          if wait "$pid"; then
+            echo "ripper-wallpaper: neowall started"
+          fi
+        fi
       }
+
+      echo "ripper-wallpaper: launching neowall"
+      start_neowall || true
+    '' else ''
+      echo "ripper-wallpaper: neowall disabled"
+      ${pkgs.procps}/bin/pkill -u "''${USER:-$(${pkgs.coreutils}/bin/id -un 2>/dev/null || true)}" -x neowall 2>/dev/null || true
     '';
 
   wallpaperStartScript = ''
@@ -141,12 +167,6 @@ let
 
     if [ -z "''${XAUTHORITY:-}" ] && [ -r "$HOME/.Xauthority" ]; then
       export XAUTHORITY="$HOME/.Xauthority"
-    fi
-
-    xdotool_bin="${pkgs.xdotool}/bin/xdotool"
-    focusedwindow=""
-    if command -v "$xdotool_bin" >/dev/null 2>&1; then
-      focusedwindow=$($xdotool_bin getactivewindow 2>/dev/null || echo "")
     fi
 
     expand_wallpaper_path() {
@@ -176,33 +196,7 @@ let
       ${pkgs.feh}/bin/feh ${fehFlag} "$source"
     }
 
-    start_neowall() {
-      [ "${lib.boolToString neowallEnable}" = "true" ] || return 1
-
-      echo "ripper-wallpaper: starting neowall"
-      ${neowallPackage}/bin/neowall kill >/dev/null 2>&1 || true
-      ${pkgs.coreutils}/bin/nice -n ${toString (neowall.nice or 0)} \
-        ${neowallPackage}/bin/neowall &
-      pid="$!"
-      ${pkgs.coreutils}/bin/sleep 0.35
-
-      if kill -0 "$pid" 2>/dev/null; then
-        echo "ripper-wallpaper: neowall is running"
-      else
-        if wait "$pid"; then
-          echo "ripper-wallpaper: neowall started"
-        fi
-      fi
-    }
-
-    # start and preserve focus
-    echo "ripper-wallpaper: launching neowall (preserve focus)"
-    start_neowall || true
-
-    # restore previously focused window if xdotool is available
-    if command -v "$xdotool_bin" >/dev/null 2>&1 && [ -n "$focusedwindow" ]; then
-      [ "$focusedwindow" != "$($xdotool_bin getactivewindow 2>/dev/null || echo "")" ] && $xdotool_bin windowfocus $focusedwindow || true
-    fi
+    ${startNeowallScript}
 
     apply_feh_wallpaper || true
   '';
@@ -252,7 +246,7 @@ in
 
   home.packages =
     lib.optionals fehEnable [ pkgs.feh ]
-    ++ lib.optionals neowallEnable [ neowallPackage wallpaperWatchPackage pkgs.xdotool ];
+    ++ lib.optionals neowallEnable [ neowallPackage wallpaperWatchPackage ];
 
   home.file =
     {
