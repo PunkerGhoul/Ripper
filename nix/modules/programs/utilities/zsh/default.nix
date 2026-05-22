@@ -73,6 +73,7 @@ in {
         function _ipfuscate() { python3 /opt/IPFuscator/ipfuscator.py "$1" | awk -F "\t" "/IP Address:/,0 {if (\$2 && \$2 !~ /:$| \$/) {gsub(\" \", \"\t\", \$2); print \$2}}"; }; _ipfuscate;
       '';
       zap = "/usr/local/bin/zap.sh";
+      open = "${pkgs.xdg-utils}/bin/xdg-open";
     };
     autosuggestion.enable = true;
     syntaxHighlighting.enable = true;
