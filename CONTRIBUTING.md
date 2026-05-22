@@ -76,7 +76,7 @@ Please respect issue templates and provide as much context as possible.
 ## Branch Naming & Commit Messages
 
 * **Branch prefix**: `feat/`, `fix/`, `chore/`, `docs/`, `refactor/`.
-* **Format**: `<prefix>/<component>-<brief-description>` e.g. `feat/home-manager-modules`, `fix/env-example`
+* **Format**: `<prefix>/<component>-<brief-description>` e.g. `feat/home-manager-modules`, `fix/local-env`
 
 **Commit messages** should be:
 
@@ -96,13 +96,13 @@ Example:
 
 * Follow existing Nix and shell conventions in this repo.
 * Keep your changes idempotent and reproducible with Home-Manager.
-* If you add new modules or scripts, consider how they integrate with `home.nix`.
+* If you add new modules or scripts, consider how they integrate with `nix/home.nix`.
 * Manual verification is required:
 
   * Reload your Home-Manager config:
 
     ```bash
-    home-manager switch -f ./home.nix
+    home-manager switch --flake path:$PWD#ripper -b backup
     ```
 
   * Verify the expected behaviour on your system.
