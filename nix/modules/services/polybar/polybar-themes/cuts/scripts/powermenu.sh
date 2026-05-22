@@ -97,23 +97,21 @@ start_lock() {
 shutdown=" Shutdown"
 reboot=" Restart"
 lock=" Lock"
-suspend=" Sleep"
 logout=" Logout"
 
 # Confirmation
 confirm_exit() {
-	printf 'yes\nno\n' | rofi -dmenu \
+	rofi -dmenu \
 		-no-config \
 		-i \
 		-no-fixed-num-lines \
-		-p "Are You Sure? : " \
-		-selected-row 1 \
+		-p "Confirm [Y/n]: " \
 		-theme "$dir/confirm.rasi"
 }
 
 confirmed() {
 	case "$1" in
-	[Yy] | [Yy][Ee][Ss])
+	"" | [Yy] | [Yy][Ee][Ss])
 		return 0
 		;;
 	esac
@@ -121,13 +119,45 @@ confirmed() {
 	return 1
 }
 
+cancelled() {
+	case "$1" in
+	[Nn] | [Nn][Oo])
+		return 0
+		;;
+	esac
+
+	return 1
+}
+
+run_logout_action() {
+	: >"$log"
+
+	if [[ "$DESKTOP_SESSION" == "Openbox" ]]; then
+		openbox --exit >>"$log" 2>&1
+		status=$?
+	elif [[ "$DESKTOP_SESSION" == "bspwm" ]]; then
+		bspc quit >>"$log" 2>&1
+		status=$?
+	else
+		i3-msg exit >>"$log" 2>&1
+		status=$?
+	fi
+
+	if [[ "$status" -eq 0 ]]; then
+		exit 0
+	fi
+
+	show_error "Logout failed ($status). See $log"
+	exit "$status"
+}
+
 # Message
 msg() {
-	rofi -no-config -theme "$dir/message.rasi" -e "Available Options  -  yes / y / no / n"
+	rofi -no-config -theme "$dir/message.rasi" -e "Available Options  -  Y / n"
 }
 
 # Variable passed to rofi
-options="$lock\n$suspend\n$logout\n$reboot\n$shutdown"
+options="$lock\n$logout\n$reboot\n$shutdown"
 
 chosen="$(echo -e "$options" | $rofi_command -p "Uptime: $uptime" -dmenu -selected-row 0)"
 case $chosen in
@@ -135,7 +165,7 @@ $shutdown)
 	ans=$(confirm_exit)
 	if confirmed "$ans"; then
 		run_power_action poweroff
-	elif [[ $ans == "no" || $ans == "NO" || $ans == "n" || $ans == "N" ]]; then
+	elif cancelled "$ans"; then
 		exit 0
 	else
 		msg
@@ -145,7 +175,7 @@ $reboot)
 	ans=$(confirm_exit)
 	if confirmed "$ans"; then
 		run_power_action reboot
-	elif [[ $ans == "no" || $ans == "NO" || $ans == "n" || $ans == "N" ]]; then
+	elif cancelled "$ans"; then
 		exit 0
 	else
 		msg
@@ -154,31 +184,11 @@ $reboot)
 $lock)
 	start_lock
 	;;
-$suspend)
-	ans=$(confirm_exit)
-	if confirmed "$ans"; then
-		: >"$log"
-		start_polkit_agent
-		start_lock || exit 1
-		sleep 0.3
-		run_power_action suspend
-	elif [[ $ans == "no" || $ans == "NO" || $ans == "n" || $ans == "N" ]]; then
-		exit 0
-	else
-		msg
-	fi
-	;;
 $logout)
 	ans=$(confirm_exit)
 	if confirmed "$ans"; then
-		if [[ "$DESKTOP_SESSION" == "Openbox" ]]; then
-			openbox --exit
-		elif [[ "$DESKTOP_SESSION" == "bspwm" ]]; then
-			bspc quit
-		elif [[ "$DESKTOP_SESSION" == "i3" ]]; then
-			i3-msg exit
-		fi
-	elif [[ $ans == "no" || $ans == "NO" || $ans == "n" || $ans == "N" ]]; then
+		run_logout_action
+	elif cancelled "$ans"; then
 		exit 0
 	else
 		msg
