@@ -73,7 +73,23 @@ let
     [ "${i3lock-color}/bin" "${pkgs.maim}/bin" "${pkgs.imagemagick}/bin" "${pkgs.coreutils}/bin" ]
     (builtins.readFile ./scripts/lock);
   rofiLauncher = pkgs.writeShellScript "ripper-rofi-drun" ''
-    export PATH="${config.home.homeDirectory}/.local/bin:${config.home.homeDirectory}/.nix-profile/bin:${config.home.homeDirectory}/.local/state/nix/profiles/profile/bin:$PATH"
+    for profile in \
+      "${config.home.homeDirectory}/.nix-profile" \
+      "${config.home.homeDirectory}/.local/state/nix/profiles/profile" \
+      "/etc/profiles/per-user/$USER"; do
+      if [ -r "$profile/etc/profile.d/hm-session-vars.sh" ]; then
+        . "$profile/etc/profile.d/hm-session-vars.sh"
+      fi
+      if [ -d "$profile/bin" ]; then
+        PATH="$profile/bin:$PATH"
+      fi
+      if [ -d "$profile/share" ]; then
+        XDG_DATA_DIRS="$profile/share''${XDG_DATA_DIRS:+:$XDG_DATA_DIRS}"
+      fi
+    done
+
+    export PATH="${config.home.homeDirectory}/.local/bin:$PATH"
+    export XDG_DATA_DIRS="${config.home.homeDirectory}/.local/share:${config.home.homeDirectory}/.nix-profile/share:${config.home.homeDirectory}/.local/state/nix/profiles/profile/share:/var/lib/flatpak/exports/share:''${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
     exec ${pkgs.rofi}/bin/rofi -modi drun,run -show drun
   '';
   floatingToggleScript = pkgs.writeShellScript "ripper-i3-floating-toggle" ''
