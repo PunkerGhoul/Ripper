@@ -1,21 +1,25 @@
-{ config, pkgs, lib, ... }:
+{ config
+, pkgs
+, lib
+, unstable
+, nixosPkgs
+, username
+, homeDirectory
+, stateVersion
+, env
+, installConfig
+, nixGLCommand
+, ...
+}:
 
 let
-  unstable = import <nixpkgs-unstable> {
-    inherit (pkgs) system;
-    config.allowUnfree = true;
-  };
-
-  env = import ./env.nix;
-  username = builtins.getEnv "USER";
-
   bashPath = "${pkgs.bash}/bin/bash";
   librewolfPath = "${pkgs.librewolf}/bin/librewolf";
 in {
   # Home Manager needs a bit of information about you and the paths it should
   # manage.
   home.username = username;
-  home.homeDirectory = "/home/${username}";
+  home.homeDirectory = homeDirectory;
 
   # This value determines the Home Manager release that your configuration is
   # compatible with. This helps avoid breakage when a new Home Manager release
@@ -24,11 +28,13 @@ in {
   # You should not change this value, even if you update Home Manager. If you do
   # want to update the value, then make sure to first check the Home Manager
   # release notes.
-  home.stateVersion = "25.05"; # Please read the comment before changing.
+  home.stateVersion = stateVersion; # Please read the comment before changing.
 
   # The home.packages option allows you to install Nix packages into your
   # environment.
   home.packages = [
+    pkgs.nerd-fonts.hack
+
     # # Adds the 'hello' command to your environment. It prints a friendly
     # # "Hello, world!" when run.
     # pkgs.hello
@@ -45,7 +51,7 @@ in {
     # (pkgs.writeShellScriptBin "my-hello" ''
     #   echo "Hello, ${config.home.username}!"
     # '')
-  ];
+  ] ++ config.ripper.programs.packages;
 
   # Home Manager Extra directories to prepend to PATH.
   # # These directories are added to the PATH variable in a double-quoted context, so expressions like $HOME are expanded by the shell.
@@ -111,10 +117,18 @@ in {
   # Let Home Manager install and manage itself.
   programs.home-manager.enable = true;
 
-  fonts.fontconfig.enable = true;
+  fonts.fontconfig = {
+    enable = true;
+        defaultFonts = {
+        serif = [ "Hack Nerd Font" ];
+        sansSerif = [ "Hack Nerd Font" ];
+        monospace = [ "Hack Nerd Font" ];
+        emoji = [ "Hack Nerd Font" ];
+    };
+  };
 
   imports = [
     (import ./configuration { inherit pkgs; })
-    (import ./modules { inherit config pkgs unstable lib env; })
+    (import ./modules { inherit config pkgs unstable nixosPkgs lib env installConfig nixGLCommand; })
   ];
 }
