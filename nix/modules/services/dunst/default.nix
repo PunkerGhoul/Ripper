@@ -1,6 +1,10 @@
 { config, pkgs, ... }:
 
 {
+  home.packages = [
+    pkgs.libnotify
+  ];
+
   services.dunst = {
     enable = true;
     configFile = "${config.home.homeDirectory}/.config/dunst/dunstrc";
