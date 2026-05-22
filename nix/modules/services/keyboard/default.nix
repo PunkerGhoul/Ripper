@@ -24,7 +24,7 @@ let
   keyboardLayoutScript = pkgs.writeShellScript "ripper-keyboard-layout" ''
     set -eu
 
-    PATH="${pkgs.coreutils}/bin:${pkgs.gnugrep}/bin:${pkgs.gawk}/bin:${pkgs.xorg.setxkbmap}/bin''${PATH:+:$PATH}"
+    PATH="${pkgs.coreutils}/bin:${pkgs.gnugrep}/bin:${pkgs.gawk}/bin:${pkgs.setxkbmap}/bin''${PATH:+:$PATH}"
 
     state_dir="''${XDG_STATE_HOME:-$HOME/.local/state}/ripper/keyboard"
     runtime_dir="''${XDG_RUNTIME_DIR:-/tmp/ripper-runtime-$UID}"
@@ -148,7 +148,7 @@ let
 in
 {
   home.packages = [
-    pkgs.xorg.setxkbmap
+    pkgs.setxkbmap
     pkgs.inotify-tools
   ];
 

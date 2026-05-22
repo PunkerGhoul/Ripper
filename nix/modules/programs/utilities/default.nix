@@ -22,6 +22,9 @@
     pkgs.ffmpeg
     pkgs.uv
     pkgs.netcat-gnu
+    pkgs.socat
+    pkgs.telnet
+    pkgs.strace
     # Sage is intentionally sourced from nixosPkgs; switch to pkgs.sage to use the base nixpkgs input.
     # The install check override works around Sage doctest failures seen on some nixos-unstable revisions.
     (nixosPkgs.sage.overrideAttrs (_: {
