@@ -1,0 +1,20 @@
+#!/bin/sh
+
+xorg_bin=""
+for candidate in "$(command -v Xorg.wrap 2>/dev/null)" /usr/lib/Xorg.wrap /usr/lib/xorg/Xorg.wrap /usr/bin/Xorg; do
+  if [ -n "$candidate" ] && [ -x "$candidate" ]; then
+    xorg_bin="$candidate"
+    break
+  fi
+done
+
+if [ -z "$xorg_bin" ]; then
+  echo "ripper: Xorg binary not found" >&2
+  exit 127
+fi
+
+if [ -n "${XDG_VTNR:-}" ]; then
+  exec "$xorg_bin" -keeptty -nolisten tcp "vt${XDG_VTNR}" "$@"
+fi
+
+exec "$xorg_bin" -keeptty -nolisten tcp "$@"
