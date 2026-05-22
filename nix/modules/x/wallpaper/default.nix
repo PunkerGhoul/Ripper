@@ -1,0 +1,267 @@
+{ config, pkgs, lib, installConfig ? { }, nixGLCommand, ... }:
+
+let
+  nixGL = import ../../nixgl { inherit pkgs nixGLCommand; };
+  neowallPackage = nixGL pkgs.neowall;
+  wallpaperWatchPackage = pkgs.rustPlatform.buildRustPackage {
+    pname = "ripper-wallpaper-watch";
+    version = "0.1.0";
+
+    src = ./watcher;
+    cargoLock.lockFile = ./watcher/Cargo.lock;
+
+    nativeBuildInputs = [ pkgs.pkg-config ];
+    buildInputs = [
+      pkgs.libx11
+      pkgs.libxrandr
+    ];
+  };
+
+  wallpaper = installConfig.wallpaper or { };
+  feh = wallpaper.feh or { };
+  neowall = wallpaper.neowall or { };
+
+  fehEnable = feh.enable or false;
+  neowallEnable = neowall.enable or true;
+
+  sourceToString = source:
+    if builtins.isPath source then
+      toString source
+    else if builtins.isString source then
+      source
+    else
+      throw "wallpaper.feh.source/path/url must be a path or string";
+
+  configuredFehSource =
+    if feh ? url then
+      feh.url
+    else if feh ? source then
+      feh.source
+    else if feh ? path then
+      feh.path
+    else
+      "$HOME/Pictures/Wallpapers/cyberpunk.jpg";
+
+  rawFehSource = sourceToString configuredFehSource;
+  fehSourceIsUrl =
+    lib.hasPrefix "https://" rawFehSource
+    || lib.hasPrefix "http://" rawFehSource;
+  fehHash = feh.hash or feh.sha256 or "";
+  fehFetchHash =
+    if fehHash != "" then
+      fehHash
+    else
+      throw "wallpaper.feh.hash or wallpaper.feh.sha256 is required when wallpaper.feh.source/url is an URL";
+  fehFetchArgs = { url = rawFehSource; } // (
+    if lib.hasPrefix "sha256-" fehFetchHash then
+      { hash = fehFetchHash; }
+    else
+      { sha256 = fehFetchHash; }
+  );
+  fehSource =
+    if fehEnable && fehSourceIsUrl then
+      toString (pkgs.fetchurl fehFetchArgs)
+    else
+      rawFehSource;
+
+  fehModes = {
+    center = "--bg-center";
+    fill = "--bg-fill";
+    max = "--bg-max";
+    scale = "--bg-scale";
+    tile = "--bg-tile";
+  };
+  fehMode = feh.mode or "center";
+  fehFlag = fehModes.${fehMode} or (throw "Unsupported wallpaper.feh.mode: ${fehMode}");
+
+  neowallShaderName = neowall.shaderName or neowall.shader or "ripper.glsl";
+  defaultNeowallGlsl = builtins.readFile ./shaders/ripper.glsl;
+  sanitizeNeowallGlsl = glsl:
+    let
+      withoutLeadingNewline = lib.removePrefix "\n" glsl;
+      lines = lib.splitString "\n" withoutLeadingNewline;
+      withoutVersion =
+        if lines != [] && lib.hasPrefix "#version" (builtins.head lines) then
+          lib.concatStringsSep "\n" (builtins.tail lines)
+        else
+          withoutLeadingNewline;
+      withoutUniforms = builtins.replaceStrings
+        [
+          "    uniform float iTime;\n"
+          "        uniform float iTime;\n"
+          "    uniform vec2 iResolution;\n"
+          "        uniform vec2 iResolution;\n"
+        ]
+        [ "" "" "" "" ]
+        withoutVersion;
+    in
+      builtins.replaceStrings
+        [
+          "void main()"
+          "gl_FragCoord.xy"
+          "gl_FragColor"
+        ]
+        [
+          "void mainImage(out vec4 fragColor, in vec2 fragCoord)"
+          "fragCoord"
+          "fragColor"
+        ]
+        withoutUniforms;
+  neowallGlsl = sanitizeNeowallGlsl (
+    if (neowall ? glsl) && neowall.glsl != "" then
+      neowall.glsl
+    else if (neowall ? shaderCode) && neowall.shaderCode != "" then
+      neowall.shaderCode
+    else
+      defaultNeowallGlsl
+    );
+  neowallConfig = neowall.config or ''
+    default {
+      shader ${neowallShaderName}
+      shader_speed ${toString (neowall.speed or 1.0)}
+      shader_fps 24
+      vsync false
+      show_fps ${lib.boolToString (neowall.showFps or false)}
+    }
+  '';
+
+  startNeowallScript =
+    if neowallEnable then ''
+      start_neowall() {
+        echo "ripper-wallpaper: starting neowall"
+        ${neowallPackage}/bin/neowall kill >/dev/null 2>&1 || true
+        ${pkgs.coreutils}/bin/nice -n ${toString (neowall.nice or 0)} \
+          ${neowallPackage}/bin/neowall &
+        pid="$!"
+        ${pkgs.coreutils}/bin/sleep 0.35
+
+        if kill -0 "$pid" 2>/dev/null; then
+          echo "ripper-wallpaper: neowall is running"
+        else
+          if wait "$pid"; then
+            echo "ripper-wallpaper: neowall started"
+          fi
+        fi
+      }
+
+      echo "ripper-wallpaper: launching neowall"
+      start_neowall || true
+    '' else ''
+      echo "ripper-wallpaper: neowall disabled"
+      ${pkgs.procps}/bin/pkill -u "''${USER:-$(${pkgs.coreutils}/bin/id -un 2>/dev/null || true)}" -x neowall 2>/dev/null || true
+    '';
+
+  wallpaperStartScript = ''
+    #!${pkgs.runtimeShell}
+    set -u
+
+    runtime_dir="''${XDG_RUNTIME_DIR:-/tmp/ripper-runtime-$UID}"
+    mkdir -p "$runtime_dir"
+    chmod 700 "$runtime_dir" 2>/dev/null || true
+    log="$runtime_dir/ripper-wallpaper.log"
+    exec >>"$log" 2>&1
+
+    if [ -z "''${DISPLAY:-}" ] && [ -z "''${WAYLAND_DISPLAY:-}" ]; then
+      export DISPLAY=:0
+    fi
+
+    if [ -z "''${XAUTHORITY:-}" ] && [ -r "$HOME/.Xauthority" ]; then
+      export XAUTHORITY="$HOME/.Xauthority"
+    fi
+
+    expand_wallpaper_path() {
+      case "$1" in
+        "~/"*)
+          printf '%s\n' "$HOME/''${1#"~/"}"
+          ;;
+        "\$HOME/"*)
+          printf '%s\n' "$HOME/''${1#"\$HOME/"}"
+          ;;
+        *)
+          printf '%s\n' "$1"
+          ;;
+      esac
+    }
+
+    apply_feh_wallpaper() {
+      [ "${lib.boolToString fehEnable}" = "true" ] || return 1
+
+      source="$(expand_wallpaper_path ${lib.escapeShellArg fehSource})"
+      if [ ! -e "$source" ]; then
+        echo "ripper-wallpaper: feh source does not exist: $source"
+        return 1
+      fi
+
+      echo "ripper-wallpaper: applying feh wallpaper: $source"
+      ${pkgs.feh}/bin/feh ${fehFlag} "$source"
+    }
+
+    ${startNeowallScript}
+
+    apply_feh_wallpaper || true
+  '';
+
+  wallpaperResizeWatchScript = ''
+    #!${pkgs.runtimeShell}
+    set -u
+
+    runtime_dir="''${XDG_RUNTIME_DIR:-/tmp/ripper-runtime-$UID}"
+    mkdir -p "$runtime_dir"
+    chmod 700 "$runtime_dir" 2>/dev/null || true
+    log="$runtime_dir/ripper-wallpaper-resize.log"
+    exec >>"$log" 2>&1
+
+    if [ -z "''${DISPLAY:-}" ]; then
+      export DISPLAY=:0
+    fi
+
+    if [ -z "''${XAUTHORITY:-}" ] && [ -r "$HOME/.Xauthority" ]; then
+      export XAUTHORITY="$HOME/.Xauthority"
+    fi
+
+    exec 9>"$runtime_dir/ripper-wallpaper-resize.lock"
+    if ! ${pkgs.util-linux}/bin/flock -n 9; then
+      echo "ripper-wallpaper-resize-watch: already running; requesting wallpaper restart"
+      "$HOME/.local/bin/ripper-wallpaper-start"
+      exit 0
+    fi
+
+    echo "ripper-wallpaper-resize-watch: start $(${pkgs.coreutils}/bin/date) DISPLAY=''${DISPLAY:-unset}"
+
+    exec ${wallpaperWatchPackage}/bin/ripper-wallpaper-watch "$HOME/.local/bin/ripper-wallpaper-start"
+  '';
+in
+{
+  home.activation.stop-obsolete-wallpaper-watchers = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    user_name="''${USER:-$(${pkgs.coreutils}/bin/id -un 2>/dev/null || true)}"
+    if [ -n "$user_name" ]; then
+      ${pkgs.procps}/bin/pkill -u "$user_name" -f ripper-wallpaper-resize-watch 2>/dev/null || true
+      ${pkgs.procps}/bin/pkill -u "$user_name" -x ripper-wallpaper-watch 2>/dev/null || true
+    fi
+
+    if [ -n "''${DISPLAY:-}" ] && [ -x "$HOME/.local/bin/ripper-wallpaper-resize-watch" ]; then
+      "$HOME/.local/bin/ripper-wallpaper-resize-watch" >/dev/null 2>&1 &
+    fi
+  '';
+
+  home.packages =
+    lib.optionals fehEnable [ pkgs.feh ]
+    ++ lib.optionals neowallEnable [ neowallPackage wallpaperWatchPackage ];
+
+  home.file =
+    {
+      ".local/bin/ripper-wallpaper-start" = {
+        text = wallpaperStartScript;
+        executable = true;
+      };
+
+      ".local/bin/ripper-wallpaper-resize-watch" = {
+        text = wallpaperResizeWatchScript;
+        executable = true;
+      };
+    }
+    // lib.optionalAttrs neowallEnable {
+      ".config/neowall/config.vibe".text = neowallConfig;
+      ".config/neowall/shaders/${neowallShaderName}".text = neowallGlsl;
+    };
+}
