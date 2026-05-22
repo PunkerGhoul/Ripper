@@ -69,8 +69,8 @@ let
   };
 
   lockScript = builtins.replaceStrings
-    [ "{{i3lockBin}}" ]
-    [ "${i3lock-color}/bin" ]
+    [ "{{i3lockBin}}" "{{maimBin}}" "{{magickBin}}" "{{mktempBin}}" ]
+    [ "${i3lock-color}/bin" "${pkgs.maim}/bin" "${pkgs.imagemagick}/bin" "${pkgs.coreutils}/bin" ]
     (builtins.readFile ./scripts/lock);
   rofiLauncher = pkgs.writeShellScript "ripper-rofi-drun" ''
     export PATH="${config.home.homeDirectory}/.local/bin:${config.home.homeDirectory}/.nix-profile/bin:${config.home.homeDirectory}/.local/state/nix/profiles/profile/bin:$PATH"

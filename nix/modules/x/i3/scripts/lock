@@ -1,23 +1,45 @@
 #!/bin/sh
 
-insidecolor=00000000
-ringcolor=ffffffff
-keyhlcolor=d23c3dff
-bshlcolor=d23c3dff
+insidecolor=1b1326cc
+ringcolor=7b4dffff
+keyhlcolor=f7f0ffff
+bshlcolor=d75f8fff
 separatorcolor=00000000
-insidevercolor=00000000
-insidewrongcolor=d23c3dff
-ringvercolor=ffffffff
-ringwrongcolor=ffffffff
-verifcolor=ffffffff
-timecolor=ffffffff
-datecolor=ffffffff
-loginbox=00000066
-font="sans-serif"
+insidevercolor=2b2038cc
+insidewrongcolor=d75f8fcc
+ringvercolor=f7f0ffff
+ringwrongcolor=d75f8fff
+verifcolor=f7f0ffff
+timecolor=f7f0ffff
+datecolor=d9c7ffff
+font="monospace"
 locktext='Type password to unlock...'
 
+runtime_dir="${XDG_RUNTIME_DIR:-/tmp}"
+tmp_dir="$({{mktempBin}}/mktemp -d "$runtime_dir/ripper-lock.XXXXXX" 2>/dev/null || {{mktempBin}}/mktemp -d /tmp/ripper-lock.XXXXXX)"
+screenshot="$tmp_dir/screenshot.png"
+lock_image="$tmp_dir/lock.png"
+
+cleanup() {
+    rm -rf "$tmp_dir"
+}
+trap cleanup EXIT INT TERM
+
+image_args="--color=18131f"
+if {{maimBin}}/maim "$screenshot" 2>/dev/null; then
+    if {{magickBin}}/magick "$screenshot" \
+        -filter Gaussian -resize 25% -blur 0x2.4 -resize 400% \
+        -fill '#18131f' -colorize 45% \
+        -fill '#7b4dff' -tint 8 \
+        "$lock_image" 2>/dev/null; then
+        image_args="--image=$lock_image"
+    else
+        image_args="--image=$screenshot"
+    fi
+fi
+
 {{i3lockBin}}/i3lock \
-    -n -e --color=101014 \
+    -n -e "$image_args" \
     --clock --time-pos='x+110:h-70' \
     --date-align 1 --date-str "$locktext" --date-pos='x+43:h-45' \
     --inside-color="$insidecolor" --ring-color="$ringcolor" --line-uses-inside \
