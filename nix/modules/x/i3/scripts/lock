@@ -15,16 +15,9 @@ datecolor=ffffffff
 loginbox=00000066
 font="sans-serif"
 locktext='Type password to unlock...'
-temp_pic='/tmp/i3lock.png'
-
-imagemagick_bin={{imagemagickBin}}
-scrot_bin={{scrotBin}}
-
-$scrot_bin/scrot -o -q 100 "$temp_pic"
-$imagemagick_bin/magick "$temp_pic" -paint 3 -swirl 270 "$temp_pic"
 
 {{i3lockBin}}/i3lock \
-    -n -t -e -i "$temp_pic" \
+    -n -e --color=101014 \
     --clock --time-pos='x+110:h-70' \
     --date-align 1 --date-str "$locktext" --date-pos='x+43:h-45' \
     --inside-color="$insidecolor" --ring-color="$ringcolor" --line-uses-inside \
