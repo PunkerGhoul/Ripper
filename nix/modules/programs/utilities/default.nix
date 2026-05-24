@@ -10,6 +10,7 @@
     (import ./kitty { inherit config pkgs unstable nixGLCommand; })
     (import ./neovim { inherit pkgs unstable; })
     (import ./rofi { inherit config pkgs; })
+    (import ./sage { inherit lib nixosPkgs; })
     (import ./tmux { inherit pkgs; })
     (import ./zsh { inherit config pkgs lib; })
   ];
@@ -25,11 +26,6 @@
     pkgs.socat
     pkgs.inetutils
     pkgs.strace
-    # Sage is intentionally sourced from nixosPkgs; switch to pkgs.sage to use the base nixpkgs input.
-    # The install check override works around Sage doctest failures seen on some nixos-unstable revisions.
-    (nixosPkgs.sage.overrideAttrs (_: {
-      doInstallCheck = false;
-    }))
     pkgs.logseq
     pkgs.openvpn
     pkgs.xxd
