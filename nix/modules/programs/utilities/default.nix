@@ -7,6 +7,7 @@
     (import ./git { inherit pkgs env; })
     (import ./jq { inherit pkgs; })
     (import ./fzf { inherit pkgs; })
+    (import ./gparted { inherit pkgs; })
     (import ./kitty { inherit config pkgs unstable nixGLCommand; })
     (import ./neovim { inherit pkgs unstable; })
     (import ./rofi { inherit config pkgs; })
