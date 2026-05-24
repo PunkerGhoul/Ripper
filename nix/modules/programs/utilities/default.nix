@@ -11,7 +11,7 @@
     (import ./neovim { inherit pkgs unstable; })
     (import ./rofi { inherit config pkgs; })
     (import ./sage { inherit lib nixosPkgs; })
-    (import ./thunar { inherit pkgs; })
+    (import ./thunar { inherit config pkgs; })
     (import ./tmux { inherit pkgs; })
     (import ./zsh { inherit config pkgs lib; })
   ];

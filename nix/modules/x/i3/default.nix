@@ -178,6 +178,7 @@ let
     export XDG_SESSION_DESKTOP=i3
     export XDG_SESSION_TYPE=x11
     export DESKTOP_SESSION=i3
+    export XDG_DATA_DIRS="${config.home.homeDirectory}/.local/share:${config.home.homeDirectory}/.nix-profile/share:${config.home.homeDirectory}/.local/state/nix/profiles/profile/share:/var/lib/flatpak/exports/share:''${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
 
     if command -v dbus-update-activation-environment >/dev/null 2>&1; then
       dbus-update-activation-environment --systemd \
@@ -297,7 +298,7 @@ in {
         "${modifier}+d" = "exec --no-startup-id ${rofiLauncher}";
         "${modifier}+b" = "exec --no-startup-id $HOME/.local/bin/ripper-librewolf-instant -P Personal";
         "${modifier}+Return" = "exec --no-startup-id ${kittyLauncher}";
-        "${modifier}+Shift+f" = "exec --no-startup-id ${pkgs.thunar}/bin/thunar";
+        "${modifier}+Shift+f" = "exec --no-startup-id $HOME/.local/bin/ripper-thunar";
         "XF86AudioRaiseVolume" = "exec --no-startup-id ${pkgs.pamixer}/bin/pamixer --allow-boost --increase 5";
         "XF86AudioLowerVolume" = "exec --no-startup-id ${pkgs.pamixer}/bin/pamixer --decrease 5";
         "XF86AudioMute" = "exec --no-startup-id ${pkgs.pamixer}/bin/pamixer --toggle-mute";
