@@ -7,6 +7,7 @@ type InstallConfig struct {
 	System        string
 	Distro        string
 	GPUWrapper    string
+	SddmVideoSource string
 	StateVersion  string
 	ConfigPath    string
 	Existing      bool

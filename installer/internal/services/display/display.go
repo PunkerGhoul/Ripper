@@ -49,6 +49,12 @@ func EnsureDisplayManager(cfg config.InstallConfig, apply bool) (map[string]stri
 	}
 	result["session"] = sessionState
 
+	themeState, err := EnsureAbstractTheme(apply)
+	if err != nil {
+		return nil, err
+	}
+	result["theme"] = themeState
+
 	// --- config ---
 	configState, err := EnsureSddmConfig(cfg, apply)
 	if err != nil {
@@ -68,9 +74,9 @@ func EnsureDisplayManager(cfg config.InstallConfig, apply bool) (map[string]stri
 
 // EnsureRipperSession asegura que exista la sesión y el script de arranque
 func EnsureRipperSession(apply bool) (string, error) {
-		const scriptPath = "/usr/local/bin/ripper-session"
-		const desktopPath = "/usr/share/xsessions/ripper.desktop"
-		script := `#!/bin/sh
+	const scriptPath = "/usr/local/bin/ripper-session"
+	const desktopPath = "/usr/share/xsessions/ripper.desktop"
+	script := `#!/bin/sh
 # Managed by Ripper.
 for profile in \
 	"$HOME/.nix-profile" \
@@ -105,7 +111,7 @@ fi
 
 exec "$HOME/.local/bin/ripper-session-start"
 `
-		desktop := `[Desktop Entry]
+	desktop := `[Desktop Entry]
 Name=Ripper
 Comment=Ripper i3 session
 Exec=/usr/local/bin/ripper-session
@@ -114,17 +120,17 @@ Type=Application
 DesktopNames=i3;Ripper
 `
 
-		if system.FileHasContent(scriptPath, script) && system.FileHasContent(desktopPath, desktop) {
-				return "already_configured", nil
-		}
-		if !apply {
-				return "would_write", nil
-		}
-		if err := system.WriteRootFile(scriptPath, script, "0755"); err != nil {
-				return "", err
-		}
-		if err := system.WriteRootFile(desktopPath, desktop, "0644"); err != nil {
-				return "", err
-		}
-		return "written", nil
+	if system.FileHasContent(scriptPath, script) && system.FileHasContent(desktopPath, desktop) {
+		return "already_configured", nil
+	}
+	if !apply {
+		return "would_write", nil
+	}
+	if err := system.WriteRootFile(scriptPath, script, "0755"); err != nil {
+		return "", err
+	}
+	if err := system.WriteRootFile(desktopPath, desktop, "0644"); err != nil {
+		return "", err
+	}
+	return "written", nil
 }

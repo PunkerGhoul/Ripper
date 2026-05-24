@@ -77,6 +77,7 @@ func EnsureSddmEnabled(apply bool) (string, error) {
 func renderSddmConfig(loginUser string) string {
 	return fmt.Sprintf(`[General]
 DisplayServer=x11-user
+InputMethod=qtvirtualkeyboard
 
 [Autologin]
 Relogin=false
@@ -90,6 +91,9 @@ HideShells=/usr/sbin/nologin,/usr/bin/nologin,/sbin/nologin,/bin/false
 HideUsers=%s
 RememberLastUser=false
 RememberLastSession=false
+
+[Theme]
+Current=Abstract
 `, strings.Join(sddmHiddenUsers(loginUser), ","))
 }
 

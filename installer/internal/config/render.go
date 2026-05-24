@@ -15,6 +15,12 @@ func RenderInstallConfig(cfg InstallConfig) string {
     wrapper = %q;
   };
 
+  sddm = {
+    enable = true;
+    theme = "Abstract";
+    videoSource = %q;
+  };
+
   wallpaper = {
     feh = {
       enable = false;
@@ -32,5 +38,5 @@ func RenderInstallConfig(cfg InstallConfig) string {
     };
   };
 }
-`, cfg.Username, cfg.HomeDirectory, cfg.HostName, cfg.System, cfg.Distro, cfg.StateVersion, cfg.GPUWrapper)
+`, cfg.Username, cfg.HomeDirectory, cfg.HostName, cfg.System, cfg.Distro, cfg.StateVersion, cfg.GPUWrapper, cfg.SddmVideoSource)
 }

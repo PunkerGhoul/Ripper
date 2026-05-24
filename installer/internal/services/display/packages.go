@@ -51,6 +51,14 @@ func ensureDisplayManagerPackagesDebian(apply bool) (string, error) {
 		"polkit",
 		"xorg",
 		"dbus-x11",
+		"libqt6svg6",
+		"qt6-virtualkeyboard-plugin",
+		"qt6-virtualkeyboard-imports",
+		"libqt6multimedia6",
+		"qml6-module-qtmultimedia",
+		"qml6-module-qtquick-controls",
+		"qml6-module-qtquick-effects",
+		"fonts-open-sans",
 	); err != nil {
 		return "", err
 	}
@@ -91,6 +99,10 @@ func ensureDisplayManagerPackagesArch(apply bool) (string, error) {
 		"xorg-server",
 		"xorg-xauth",
 		"dbus",
+		"qt6-svg",
+		"qt6-virtualkeyboard",
+		"qt6-multimedia-ffmpeg",
+		"ttf-opensans",
 	); err != nil {
 		return "", err
 	}

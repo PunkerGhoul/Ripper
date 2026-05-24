@@ -17,6 +17,7 @@ func EnsureInstallConfig() (InstallConfig, error) {
 	if err != nil {
 		return InstallConfig{}, err
 	}
+	cfg.SddmVideoSource = filepath.Join(repoRoot, "local", "sddm", "Abstract.mp4")
 
 	path := filepath.Join(repoRoot, "local", "install.nix")
 
