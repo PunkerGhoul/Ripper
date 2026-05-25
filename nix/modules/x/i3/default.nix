@@ -1,4 +1,4 @@
-{ config, pkgs, lib, logoutScript, ...}:
+{ config, pkgs, lib, confirmLogoutScript, ...}:
 
 let
   modifier = config.xsession.windowManager.i3.config.modifier;
@@ -132,12 +132,6 @@ let
     exec ${pkgs.i3}/bin/i3-msg "floating enable, resize set $target_width px $target_height px, move position center"
   '';
   kittyLauncher = "${config.home.homeDirectory}/.local/bin/ripper-kitty";
-  confirmLogoutScript = pkgs.writeShellScript "ripper-confirm-logout" ''
-    exec ${pkgs.i3}/bin/i3-nagbar \
-      -t warning \
-      -m "Exit this i3 session and return to SDDM?" \
-      -B "Yes, logout" "${logoutScript}"
-  '';
   polkitAgentStartScript = pkgs.writeShellScript "ripper-polkit-agent-start" ''
     user_name="''${USER:-$(${pkgs.coreutils}/bin/id -un 2>/dev/null || true)}"
     if [ -n "$user_name" ] && ${pkgs.procps}/bin/pgrep -u "$user_name" -f 'lxqt-policykit-agent' >/dev/null 2>&1; then
