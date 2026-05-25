@@ -23,7 +23,7 @@ func EnsureAbstractTheme(apply bool) (string, error) {
 		return "", err
 	}
 
-	themeSource := filepath.Join(repoRoot, "nix", "assets", "sddm", abstractThemeName)
+	themeSource := filepath.Join(repoRoot, "nix", "modules", "sddm", "assets", abstractThemeName)
 	videoSource := filepath.Join(repoRoot, filepath.FromSlash(abstractThemeVideoRel))
 
 	if _, err := os.Stat(themeSource); err != nil {

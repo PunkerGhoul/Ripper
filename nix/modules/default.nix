@@ -47,5 +47,6 @@ in
     (import ./xdg { inherit config pkgs lib; })
     (import ./programs { inherit config pkgs lib unstable nixosPkgs env nixGLCommand; })
     (import ./services { inherit config pkgs lib nixGLCommand logoutScript; })
+    (import ./sddm { inherit config pkgs lib installConfig; })
   ];
 }

@@ -5,7 +5,7 @@ let
   enabled = sddm.enable or true;
   themeName = sddm.theme or "Abstract";
   videoSource = sddm.videoSource or "";
-  themeSource = ../../assets/sddm/Abstract;
+  themeSource = ./assets/Abstract;
   loginUser = installConfig.username or "";
 in
 lib.mkIf enabled {
