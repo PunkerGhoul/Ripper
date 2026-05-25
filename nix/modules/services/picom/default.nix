@@ -13,9 +13,9 @@ in
     enable = true;
     package = picomPackage;
     backend = "glx";
-    fade = false;
-    fadeDelta = 10;
-    fadeSteps = [ 0.028 0.03 ];
+    fade = true;
+    fadeDelta = 4;
+    fadeSteps = [ 0.08 0.08 ];
     activeOpacity = 1.0;
     inactiveOpacity = 1.0;
     menuOpacity = 1.0;
@@ -65,6 +65,14 @@ in
       runtime_dir="''${XDG_RUNTIME_DIR:-/tmp/ripper-runtime-$UID}"
       mkdir -p "$runtime_dir"
       log="$runtime_dir/ripper-picom.log"
+
+      if [ -z "''${DISPLAY:-}" ]; then
+        export DISPLAY=:0
+      fi
+
+      if [ -z "''${XAUTHORITY:-}" ] && [ -r "$HOME/.Xauthority" ]; then
+        export XAUTHORITY="$HOME/.Xauthority"
+      fi
 
       ${pkgs.procps}/bin/pkill -u "''${USER:-$(${pkgs.coreutils}/bin/id -un)}" -x picom 2>/dev/null || true
 
